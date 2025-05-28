@@ -21,7 +21,7 @@ import gi
 
 from chunk_info import ChunkInfo
 from utils import MediaFileInfo
-from via_logger import TimeMeasure
+from via_logger import TimeMeasure, logger
 
 gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gst  # noqa: E402
@@ -343,9 +343,11 @@ class FileSplitter:
                 bus.add_signal_watch()
                 bus.connect("message", bus_call, self._loop)
 
+                logger.info("Starting demuxing process")
                 pipeline.set_state(Gst.State.PLAYING)
                 self._loop.run()
                 pipeline.set_state(Gst.State.NULL)
+                logger.info("Demuxing process completed")
                 self._loop = None
 
             # Call the callback one extra time with None, to indicate no more
