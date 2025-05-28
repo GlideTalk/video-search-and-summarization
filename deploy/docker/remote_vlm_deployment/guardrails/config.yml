@@ -18,9 +18,9 @@
 models:
   - type: main
     engine: nim
-    model: meta/llama-3.1-70b-instruct
+    model: gpt-4.1-2025-04-14
     parameters:
-      base_url: "https://integrate.api.nvidia.com/v1"
+      base_url: "https://api.openai.com/v1/"
 
   - type: embeddings
     engine: nim

@@ -21,14 +21,13 @@ from nemoguardrails.llm.providers import register_llm_provider
 def get_nvcf_llama():
     register_model(
         Model(
-            id="meta/llama-3.1-70b-instruct",
+            id="gpt-4.1-2025-04-14",
             model_type="chat",
             client="ChatNVIDIA",
-            endpoint="https://api.nvcf.nvidia.com/v2/nvcf/pexec"
-            "/functions/ca7d4a69-52ca-438c-ab4c-6a0b5447fe35",
+            endpoint="https://api.openai.com/v1/",
         )
     )
-    llm = ChatNVIDIA(model="meta/llama-3.1-70b-instruct")
+    llm = ChatNVIDIA(model="gpt-4.1-2025-04-14")
 
     return llm
 
