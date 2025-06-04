@@ -17,10 +17,14 @@
 
 models:
   - type: main
-    engine: nim
-    model: meta/llama-3.1-70b-instruct
+#    engine: nim
+#    model: meta/llama-3.1-70b-instruct
+#    parameters:
+#      base_url: "http://host.docker.internal:8000/v1"
+    engine: openai
+    model: gpt-4o
     parameters:
-      base_url: "http://host.docker.internal:8000/v1"
+      base_url: "https://api.openai.com/v1"
 
   - type: embeddings
     engine: nim

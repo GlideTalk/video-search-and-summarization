@@ -19,8 +19,10 @@ summarization:
   enable: true
   method: "batch"
   llm:
-    model: "meta/llama-3.1-70b-instruct"
-    base_url: "http://host.docker.internal:8000/v1"
+#    model: "meta/llama-3.1-70b-instruct"
+#    base_url: "http://host.docker.internal:8000/v1"
+    model: "gpt-4o"
+    base_url: "https://api.openai.com/v1"
     max_tokens: 2048
     temperature: 0.2
     top_p: 0.7
@@ -41,8 +43,10 @@ chat:
     batch_size: 1
     top_k: 5
   llm:
-    model: "meta/llama-3.1-70b-instruct"
-    base_url: "http://host.docker.internal:8000/v1"
+#    model: "meta/llama-3.1-70b-instruct"
+#    base_url: "http://host.docker.internal:8000/v1"
+    model: "gpt-4o"
+    base_url: "https://api.openai.com/v1"
     max_tokens: 2048
     temperature: 0.2
     top_p: 0.7
@@ -57,8 +61,10 @@ notification:
   enable: true
   endpoint: "http://127.0.0.1:60000/via-alert-callback"
   llm:
-    model: "meta/llama-3.1-70b-instruct"
-    base_url: "http://host.docker.internal:8000/v1"
+#    model: "meta/llama-3.1-70b-instruct"
+#    base_url: "http://host.docker.internal:8000/v1"
+    model: "gpt-4o"
+    base_url: "https://api.openai.com/v1"
     max_tokens: 2048
     temperature: 0.2
     top_p: 0.7
