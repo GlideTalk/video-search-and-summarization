@@ -986,10 +986,7 @@ def build_summarization(args, app_cfg, logger_):
                             lines=1,
                             max_lines=1,
                             value="person . forklift . robot . fire . spill ",
-                            visible=not args.image_mode
-                            and bool(
-                                os.environ.get("DISABLE_CV_PIPELINE", "true").lower() == "false"
-                            ),
+                            visible=True,
                         )
 
                 with gr.Tab("Samples"):
