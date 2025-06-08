@@ -1632,6 +1632,7 @@ class VlmPipeline:
         except KeyError as e:
             # can happen if multiple stream delete requests are happening in parallel
             logger.info(f"{e}: live stream already removed from map;")
+            logger.info(f"{e}: live stream already removed from map;")
 
         for proc in self._emb_gen_procs:
             proc.send_command("stop-drop-chunks", stream_id=live_stream_id)
