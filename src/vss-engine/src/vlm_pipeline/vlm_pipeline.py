@@ -1459,6 +1459,7 @@ class VlmPipeline:
                 continue
             callback = self._chunk_callback_map.pop(item["chunk_id"], None)
             if callback:
+                logger.info("GIL_1: got callback from map --> calling callback !")
                 callback(response)
 
     def abort_chunks(self, stream_id: str):
@@ -1540,6 +1541,8 @@ class VlmPipeline:
         enable_audio=False,
         request_id="",
     ):
+        logger.info("GIL_1: inside enqueue_chunk (vlm_pipeline)")
+        logger.info("GIL_1: inside enqueue_chunk (vlm_pipeline) (2)")
         with self._enqueue_lock:
             curr_chunk_counter = self._chunk_counter
             self._chunk_counter += 1

@@ -736,6 +736,7 @@ class ViaStreamHandler:
             return None
 
     def _on_vlm_chunk_response(self, response: VlmChunkResponse, req_info: RequestInfo):
+        logger.info("GIL_1: inside  _on_vlm_chunk_response")
         """Gather chunks processed by the pipeline and run any further post-processing"""
         chunk = response.chunk
         vlm_response = response.vlm_response
@@ -1098,11 +1099,13 @@ class ViaStreamHandler:
             logger.debug("Request does not contain Context Manager")
 
         def _on_new_chunk(chunk: ChunkInfo):
+            logger.info("GIL_1: ViaStreamHandler::_on_new_chunk")
             """Callback for when a new chunk is created"""
             if chunk is None:
                 return
             chunk.streamId = req_info.assets[0].asset_id
             chunk.cv_metadata_json_file = req_info.cv_metadata_json_file
+            logger.info("GIL_1: inside _trigger_query (1)")
             self._vlm_pipeline.enqueue_chunk(
                 chunk,
                 lambda response, req_info=req_info: self._on_vlm_chunk_response(response, req_info),
@@ -1129,6 +1132,7 @@ class ViaStreamHandler:
                 logger.info(f"Saved DC available {saved_dc_file}")
                 req_info_deserialized = DCSerializer.from_json(saved_dc_file)
                 req_info.chunk_count = len(req_info_deserialized.processed_chunk_list)
+                logger.info("GIL_1: inside _trigger_query(2)\n")
                 for vlm_response in req_info_deserialized.processed_chunk_list:
                     self._on_vlm_chunk_response(vlm_response, req_info)
                 return
@@ -2050,6 +2054,7 @@ class ViaStreamHandler:
         #    req_info.enable_cv_pipeline = True
         # cv_pipeline_prompt = "person . forklift . robot . fire . spill ."
 
+        logger.info("GIL_1: inside _trigger_query (3)")
         self._vlm_pipeline.add_live_stream(
             asset.asset_id,
             asset.path,
