@@ -104,8 +104,8 @@ kill_processes() {
     while read pid; do
         # Check if process is running
         if ps -p $pid > /dev/null; then
-            # Kill the process
-            kill -9 "$pid" 2>/dev/null
+            # Kill the entire process group
+            kill -9 -- -$pid 2>/dev/null
             echo "Killed process with PID $pid"
         fi
     done < "$PID_FILE"
@@ -127,7 +127,7 @@ start_demo_client() {
     else
         EXE="python3 src/via_demo_client.py"
     fi
-    $EXE --backend http://localhost:$BACKEND_PORT --port $FRONTEND_PORT --examples-streams-directory $EXAMPLE_STREAMS_DIR  &
+    setsid $EXE --backend http://localhost:$BACKEND_PORT --port $FRONTEND_PORT --examples-streams-directory $EXAMPLE_STREAMS_DIR  &
     process_pid=$!
     if [ $? -eq 0 ]; then
         echo $process_pid >> "$PID_FILE"
@@ -164,21 +164,15 @@ END_PYTHON
 }
 
 start_milvus() {
-    # Stop milvus if already running
-    PROCESS=$(ps -e | grep milvus | grep -v grep | awk '{print $1}')
-    if [ -n "$PROCESS" ]; then
-        echo "Stopping milvus server..."
-        kill -9 $PROCESS
-        echo "Milvus server stopped"
-    fi
+
     if [ $DISABLE_CA_RAG = false ] && [ $MILVUS_DB_HOST == "127.0.0.1" ]; then
         echo "Running milvus server"
         # Start milvus_server
         if [[ -z "$MILVUS_DATA_DIR" ]]; then
-            milvus-server --proxy-port $MILVUS_DB_PORT &
+            setsid milvus-server --proxy-port $MILVUS_DB_PORT &
         else
             echo "Milvus data dir moved to " $MILVUS_DATA_DIR
-            milvus-server --proxy-port $MILVUS_DB_PORT --data $MILVUS_DATA_DIR &
+            setsid milvus-server --proxy-port $MILVUS_DB_PORT --data $MILVUS_DATA_DIR &
         fi
         process_pid=$!
         if [ $? -eq 0 ]; then
@@ -213,7 +207,7 @@ check_via_process_status() {
 }
 
 start_cuda_mps_server() {
-    nvidia-cuda-mps-control -f >/dev/null 2>&1 &
+    setsid nvidia-cuda-mps-control -f >/dev/null 2>&1 &
     echo $! >> "$PID_FILE"
     sleep 2
 }
@@ -315,7 +309,7 @@ start_via_server() {
     fi
 
     # Start via_server
-    TRANSFORMERS_VERBOSITY=error $EXE_PREFIX $EXE --port $BACKEND_PORT \
+    setsid env TRANSFORMERS_VERBOSITY=error $EXE_PREFIX $EXE --port $BACKEND_PORT \
         --model-path "$MODEL_PATH" --num-gpus $NUM_GPUS \
         --vlm-batch-size $VLM_BATCH_SIZE --ca-rag-config $CA_RAG_CONFIG \
         --graph-rag-prompt-config $GRAPH_RAG_PROMPT_CONFIG \
