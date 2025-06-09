@@ -114,6 +114,12 @@ kill_processes() {
     > "$PID_FILE"
 }
 
+restart_processes() {
+    echo "Restarting VIA services..."
+    kill_processes 9
+    start_processes
+}
+
 start_demo_client() {
     # Start via_demo_client
     if [ "$MODE" = "release" ]; then
@@ -363,6 +369,7 @@ if [ -f "$PID_FILE" ]; then
     kill_processes 9
 fi
 
+trap restart_processes HUP
 trap kill_processes 9 EXIT
 
 start_processes
