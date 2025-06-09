@@ -105,7 +105,7 @@ kill_processes() {
         # Check if process is running
         if ps -p $pid > /dev/null; then
             # Kill the process
-            kill -9 -$(ps -o pgid= $pid | grep -o '[0-9]*') 2>/dev/null
+            kill -9 "$pid" 2>/dev/null
             echo "Killed process with PID $pid"
         fi
     done < "$PID_FILE"
@@ -116,7 +116,7 @@ kill_processes() {
 
 restart_processes() {
     echo "Restarting VIA services..."
-    kill_processes 9
+    kill_processes
     start_processes
 }
 
@@ -366,11 +366,11 @@ start_processes() {
 # Check if PID file exists
 if [ -f "$PID_FILE" ]; then
     # Kill existing processes
-    kill_processes 9
+    kill_processes
 fi
 
 trap restart_processes HUP
-trap kill_processes 9 EXIT
+trap kill_processes EXIT
 
 start_processes
 echo "***********************************************************"
@@ -383,4 +383,6 @@ echo "Frontend is disabled"
 fi
 echo "Press ctrl+C to stop"
 echo "***********************************************************"
-wait
+while true; do
+    wait -n
+done
