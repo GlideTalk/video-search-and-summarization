@@ -769,7 +769,7 @@ class ViaStreamHandler:
             if req_info.enable_audio:
                 vlm_response = "Video description: " + vlm_response
 
-            logger.debug("%s\n %s", vlm_response, transcript)
+            logger.info("vlm_response= %s\n transcript= %s", vlm_response, transcript)
 
             response.vlm_response = vlm_response
             # Add the chunk VLM response to the milvus DB

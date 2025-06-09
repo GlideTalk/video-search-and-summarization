@@ -647,6 +647,7 @@ async def add_rtsp_stream(
 
 
 CHUNK_SIZES = [
+    ("1 sec", 1),
     ("10 sec", 10),
     ("20 sec", 20),
     ("30 sec", 30),
@@ -656,6 +657,7 @@ CHUNK_SIZES = [
 ]
 
 SUMMARY_DURATION = [
+    ("5 sec", 5),
     ("1 min", 60),
     ("2 min", 120),
     ("5 min", 300),

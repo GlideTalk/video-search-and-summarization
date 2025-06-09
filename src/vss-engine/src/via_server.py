@@ -1916,7 +1916,7 @@ class ViaServer:
                     media_info_end = query.media_info.end_timestamp
 
             logger.info(
-                "Received summarize query, id - %s (live-stream=%d), "
+                "Received summarize query2, id - %s (live-stream=%d), "
                 "chunk_duration=%d, chunk_overlap_duration=%d, "
                 "media-offset-type=%s, media-start-time=%r, "
                 "media-end-time=%r, modelParams=%s, "

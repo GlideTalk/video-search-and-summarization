@@ -170,7 +170,7 @@ class DefaultFrameSelector:
         pts_diff = (end_pts - start_pts) / self._num_frames
         for i in range(self._num_frames):
             self._selected_pts_array.append(start_pts + i * pts_diff)
-        logger.debug(f"Selected PTS = {self._selected_pts_array} for {chunk}")
+        logger.info(f"Selected PTS = {self._selected_pts_array} for {chunk}")
 
     def choose_frame(self, buffer, pts):
         # Choose the frame if it's PTS is more than the next sampled PTS in the
@@ -182,9 +182,11 @@ class DefaultFrameSelector:
         ):
             while len(self._selected_pts_array) and pts >= self._selected_pts_array[0]:
                 self._selected_pts_array.pop(0)
+            logger.info("Frame Chosen")
             return True
         if pts >= self._chunk.end_pts:
             self._selected_pts_array.clear()
+        logger.info("Frame NOT chosen")
         return False
 
 
@@ -889,6 +891,8 @@ class VideoFileFrameGetter:
 
             self._last_frame_pts = buffer.pts
 
+            # logger.info("buffer_probe self._is_live=%d, buffer.pts=%d", self._is_live, buffer.pts)
+
             if self._is_live:
                 buffer_address = hash(buffer)
                 video_sei_meta = gst_video_sei_meta.gst_buffer_get_video_sei_meta(buffer_address)
@@ -956,25 +960,31 @@ class VideoFileFrameGetter:
                         self._audio_start_cv.notify()
 
                 if choose_frame:
+                    logger.info("buffer_probe LIVE FRAME SELECTED buffer.pts=%d, new_chunk=%d", buffer.pts, new_chunk)
                     return Gst.PadProbeReturn.OK
 
             else:
                 if self._frame_selector.choose_frame(buffer, buffer.pts):
+                    logger.info("buffer_probe STORED FRAME SELECTED buffer.pts=%d", buffer.pts)
                     return Gst.PadProbeReturn.OK
                 if len(self._frame_selector._selected_pts_array) == 0 and not self._eos_sent:
                     if self._audio_present:
                         if self._audio_eos:
                             self._pipeline.send_event(Gst.Event.new_eos())
                             self._eos_sent = True
+                            logger.info("buffer_probe STORED EOD (1)")
                     else:
                         self._pipeline.send_event(Gst.Event.new_eos())
                         if self._audio_convert:
                             self._audio_convert.send_event(Gst.Event.new_eos())
                         self._eos_sent = True
+                        logger.info("buffer_probe STORED EOD (2)")
 
             return Gst.PadProbeReturn.DROP
 
         def add_to_cache(buffer, width, height):
+            logger.info("add_to_cache self._enable_jpeg_output=%d, width=%d, height=%d", self._enable_jpeg_output, width, height)
+
             # Probe callback to add raw frame / jpeg image to cache
             _, mapinfo = buffer.map(Gst.MapFlags.READ)
             if self._enable_jpeg_output:
@@ -1091,7 +1101,7 @@ class VideoFileFrameGetter:
             height = caps.get_structure(0).get_value("height")
             width = caps.get_structure(0).get_value("width")
             if self._first_frame_width == 0:
-                logger.debug(f"first width,height in chunk={width}, {height}")
+                logger.info(f"first width,height in chunk={width}, {height}")
                 self._first_frame_width = width
                 self._first_frame_height = height
             if sample:

@@ -73,6 +73,7 @@ class CompOpenAIModel:
     ):
 
         # Configure endpoint
+        logger.info("ERAN CompOpenAIModel configure_azure_openai")
         self._endpoint = ""
         if azureEndpointConfigured:
             # The environment variable is set to a valid string
@@ -311,7 +312,7 @@ class CompOpenAIModel:
                 + "Make sure the answer contain correct timestamps."
             )
 
-            logger.debug(f"PROMPT is  {PROMPT}")
+            logger.info(f"PROMPT is  {PROMPT}")
             messages = [
                 {
                     "role": "user",
