@@ -22,7 +22,7 @@ models:
 #    parameters:
 #      base_url: "http://host.docker.internal:8000/v1"
     engine: openai
-    model: gpt-4o
+    model: gpt-4.1
     parameters:
       base_url: "https://api.openai.com/v1"
 

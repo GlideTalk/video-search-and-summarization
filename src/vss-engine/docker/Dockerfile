@@ -13,7 +13,11 @@
 ARG BASE_IMAGE="nvcr.io/nvidia/blueprint/vss-engine-base:2.3.0"
 FROM $BASE_IMAGE
 
+<<<<<<< Updated upstream
 RUN git clone https://github.com/NVIDIA/context-aware-rag.git -b v0.5.0 /tmp/vss-ctx-rag
+=======
+RUN git clone https://github.com/GlideMe/context-aware-rag /tmp/vss-ctx-rag
+>>>>>>> Stashed changes
 RUN pip install /tmp/vss-ctx-rag --no-deps && \
     rm -rf /tmp/vss-ctx-rag
 
