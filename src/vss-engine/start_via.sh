@@ -38,8 +38,10 @@ TRT_LLM_MODE=${TRT_LLM_MODE:-int4_awq}
 
 EXAMPLE_STREAMS_DIR="${EXAMPLE_STREAMS_DIR:-/opt/nvidia/via/streams}"
 
-VLM_MODEL_TO_USE="${VLM_MODEL_TO_USE:-openai-compat}"
+VLM_MODEL_TO_USE="${VLM_MODEL_TO_USE:-openai-compat}" # options: openai-compat, gemini-compat, claude-compat
 export VIA_VLM_OPENAI_MODEL_DEPLOYMENT_NAME="${VIA_VLM_OPENAI_MODEL_DEPLOYMENT_NAME:-gpt-4o}"
+export GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+export CLAUDE_API_KEY="${CLAUDE_API_KEY:-}"
 export VSS_LOG_LEVEL=$VSS_LOG_LEVEL
 
 ENABLE_NSYS_PROFILER="${ENABLE_NSYS_PROFILER:-false}"
@@ -295,7 +297,7 @@ start_via_server() {
     if [ ! -z "$MAX_ASSET_STORAGE_SIZE_GB" ]; then
         EXTRA_ARGS+=" --max-asset-storage-size $MAX_ASSET_STORAGE_SIZE_GB"
     fi
-    if [ $VLM_MODEL_TO_USE == "openai-compat" ]; then
+    if [ "$VLM_MODEL_TO_USE" = "openai-compat" ] || [ "$VLM_MODEL_TO_USE" = "gemini-compat" ] || [ "$VLM_MODEL_TO_USE" = "claude-compat" ]; then
         if [ ! -z $NUM_VLM_PROCS ]; then
             EXTRA_ARGS+=" --num-vlm-procs $NUM_VLM_PROCS"
         else
