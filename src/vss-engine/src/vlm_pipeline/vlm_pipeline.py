@@ -25,6 +25,8 @@ from enum import Enum
 from threading import Event, Lock, Thread
 from typing import Callable, Optional
 
+from utils import StreamSettingsCache
+
 import nvtx
 import riva.client
 import torch
@@ -315,6 +317,9 @@ class DecoderProcess(ViaProcessBase):
 
         if vlm_input_width or vlm_input_height:
             fgetter._set_frame_resolution(vlm_input_width, vlm_input_height)
+        cache = StreamSettingsCache(logger=logger)
+        settings = cache.load_stream_settings(chunk.streamId)
+        fgetter.set_endlees_ai_enabled(settings.get("endlees_ai_enabled", False))
         frames, frame_times, audio_frames = fgetter.get_frames(
             chunk, True, frame_selector, enable_audio, request_id=kwargs["request_id"]
         )
@@ -392,8 +397,12 @@ class DecoderProcess(ViaProcessBase):
             enable_jpeg_output=self._enable_jpeg_tensors,
             data_type_int8=self._data_type_int8,
             audio_support=self._enable_audio,
+            endlees_ai_enabled=False,
             cv_pipeline_configs=self._cv_pipeline_configs,
         )
+        cache = StreamSettingsCache(logger=logger)
+        settings = cache.load_stream_settings(live_stream_id)
+        fgetter.set_endlees_ai_enabled(settings.get("endlees_ai_enabled", False))
         if vlm_input_width or vlm_input_height:
             fgetter._set_frame_resolution(vlm_input_width, vlm_input_height)
 
