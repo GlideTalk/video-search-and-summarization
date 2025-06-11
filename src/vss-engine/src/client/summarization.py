@@ -1004,6 +1004,7 @@ def build_summarization(args, app_cfg, logger_):
                         endlees_ai_checkbox = gr.Checkbox(
                             value=False,
                             label="Endlees AI Enabled",
+                            visible=not args.image_mode,
                         )
 
                 with gr.Tab("Samples"):
