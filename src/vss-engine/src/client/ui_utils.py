@@ -254,8 +254,8 @@ class RetrieveCache:
                 value=id_settings.get("cv_pipeline_prompt", ""), interactive=True
             ),  # cv_pipeline_prompt
             gr.update(
-                value=id_settings.get("endlees_ai_enabled", False), interactive=True
-            ),  # endlees_ai_enabled
+                value=id_settings.get("endless_ai_enabled", False), interactive=True
+            ),  # endless_ai_enabled
             gr.update(
                 value=id_settings.get("enable_audio", False), interactive=True
             ),  # enable_audio
