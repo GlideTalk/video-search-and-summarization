@@ -1298,9 +1298,25 @@ class ViaStreamHandler:
                         if response == "No matching scenarios found":
                             return response
                         try:
-                            # Validate that the response is valid JSON
-                            json.loads(response)
-                            return response
+                            # Validate that the response is valid JSON. Some
+                            # models may return JSON wrapped in markdown code
+                            # blocks. Detect this and strip the markdown
+                            # formatting before parsing.
+                            response_to_parse = response
+                            stripped = response.strip()
+                            if stripped.startswith("```") and stripped.endswith("```"):
+                                # Remove the first and last lines which contain
+                                # the markdown fencing. They may optionally
+                                # specify a language such as ```json.
+                                lines = stripped.splitlines()
+                                if len(lines) >= 3:
+                                    response_to_parse = "\n".join(lines[1:-1])
+
+                            # Ensure the extracted content is valid JSON
+                            json.loads(response_to_parse)
+                            # Return the cleaned JSON string so callers do not
+                            # have to handle markdown formatting
+                            return response_to_parse
                         except json.JSONDecodeError as e:
                             logger.error(f"Error decoding JSON: {str(e)}")
                             return "Couldn't Produce Highlights. Please try again."
