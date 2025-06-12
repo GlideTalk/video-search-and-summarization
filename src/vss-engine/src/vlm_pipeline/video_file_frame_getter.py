@@ -208,7 +208,7 @@ class VideoFileFrameGetter:
         image_aspect_ratio="",
         data_type_int8=False,
         audio_support=False,
-        endlees_ai_enabled=False,
+        endless_ai_enabled=False,
         cv_pipeline_configs={},
     ) -> None:
         self._selected_pts_array = []
@@ -233,7 +233,7 @@ class VideoFileFrameGetter:
         self._data_type_int8 = data_type_int8
         self._audio_support = audio_support
         self._enable_audio = False
-        self._endlees_ai_enabled = endlees_ai_enabled
+        self._endless_ai_enabled = endless_ai_enabled
         self._pipeline = None
         self._last_stream_id = ""
         self._is_live = False
@@ -342,9 +342,9 @@ class VideoFileFrameGetter:
             self._frame_height = frame_height
             self._destroy_pipeline = True
 
-    def set_endlees_ai_enabled(self, enabled: bool):
-        """Set Endlees AI flag."""
-        self._endlees_ai_enabled = enabled
+    def set_endless_ai_enabled(self, enabled: bool):
+        """Set Endless AI flag."""
+        self._endless_ai_enabled = enabled
 
     def _preprocess(self, frames):
         if frames and not self._enable_jpeg_output:
@@ -2997,7 +2997,7 @@ if __name__ == "__main__":
         frame_selector=DefaultFrameSelector(args.num_frames),
         enable_jpeg_output=args.enable_jpeg_output,
         audio_support=args.enable_audio,
-        endlees_ai_enabled=False,
+        endless_ai_enabled=False,
     )
 
     if args.file_or_rtsp.startswith("rtsp://"):

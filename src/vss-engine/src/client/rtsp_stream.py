@@ -478,7 +478,7 @@ async def add_rtsp_stream(
     enable_chat,
     enable_cv_metadata,
     cv_pipeline_prompt,
-    endlees_ai_enabled,
+    endless_ai_enabled,
     enable_audio,
     clear,
     enable_chat_history,
@@ -514,7 +514,7 @@ async def add_rtsp_stream(
 
             if stream_settings_cache and video_id:
                 existing = stream_settings_cache.load_stream_settings(video_id=video_id)
-                existing.update({"endlees_ai_enabled": endlees_ai_enabled})
+                existing.update({"endless_ai_enabled": endless_ai_enabled})
                 stream_settings_cache.update_stream_settings(video_id, existing)
 
             req_json = {
@@ -733,7 +733,7 @@ async def reconnect_live_stream(
     enable_chat,
     enable_cv_metadata,
     cv_pipeline_prompt,
-    endlees_ai_enabled,
+    endless_ai_enabled,
     enable_audio,
     clear,
     enable_chat_history,
@@ -753,7 +753,7 @@ async def reconnect_live_stream(
 
     if stream_settings_cache and video_id:
         existing = stream_settings_cache.load_stream_settings(video_id=video_id)
-        existing.update({"endlees_ai_enabled": endlees_ai_enabled})
+        existing.update({"endless_ai_enabled": endless_ai_enabled})
         stream_settings_cache.update_stream_settings(video_id, existing)
 
     req_json = {
@@ -1094,9 +1094,9 @@ def build_rtsp_stream(args, app_cfg, logger_):
                             ),
                         )
 
-                        endlees_ai_checkbox = gr.Checkbox(
+                        endless_ai_checkbox = gr.Checkbox(
                             value=False,
-                            label="Endlees AI Enabled",
+                            label="Endless AI Enabled",
                         )
 
                 with gr.Tab("Create Alerts"):
@@ -1720,7 +1720,7 @@ def build_rtsp_stream(args, app_cfg, logger_):
             rag_top_k,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
+            endless_ai_checkbox,
             enable_audio,
             alerts_table,
             table_state,
@@ -1781,7 +1781,7 @@ def build_rtsp_stream(args, app_cfg, logger_):
             enable_chat,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
+            endless_ai_checkbox,
             enable_audio,
             clear,
             enable_chat_history,
@@ -1829,7 +1829,7 @@ def build_rtsp_stream(args, app_cfg, logger_):
             reconnect_button,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
+            endless_ai_checkbox,
             enable_audio,
             live_stream_id_preview,
             clear,
@@ -1881,7 +1881,7 @@ def build_rtsp_stream(args, app_cfg, logger_):
             enable_chat,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
+            endless_ai_checkbox,
             enable_audio,
             clear,
             enable_chat_history,
@@ -1929,7 +1929,7 @@ def build_rtsp_stream(args, app_cfg, logger_):
             reconnect_button,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
+            endless_ai_checkbox,
             enable_audio,
             clear,
             live_stream_id_preview,

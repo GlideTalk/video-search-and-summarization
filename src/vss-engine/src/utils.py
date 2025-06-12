@@ -632,7 +632,7 @@ class StreamSettingsCache:
             "caption_summarization_prompt",
             "summary_aggregation_prompt",
             "cv_pipeline_prompt",
-            "endlees_ai_enabled",
+            "endless_ai_enabled",
             "tools",
         }
 

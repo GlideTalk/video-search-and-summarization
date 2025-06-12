@@ -459,7 +459,7 @@ async def summarize(
     vlm_input_width=0,
     vlm_input_height=0,
     cv_pipeline_prompt="",
-    endlees_ai_enabled=False,
+    endless_ai_enabled=False,
     enable_audio=False,
     enable_chat_history=True,
     graph_rag_prompt_yaml=None,
@@ -537,7 +537,7 @@ async def summarize(
 
         if stream_settings_cache and media_ids:
             existing = stream_settings_cache.load_stream_settings(video_id=media_ids[0])
-            existing.update({"endlees_ai_enabled": endlees_ai_enabled})
+            existing.update({"endless_ai_enabled": endless_ai_enabled})
             stream_settings_cache.update_stream_settings(media_ids[0], existing)
 
         parsed_alerts = []
@@ -1001,9 +1001,9 @@ def build_summarization(args, app_cfg, logger_):
                             ),
                         )
 
-                        endlees_ai_checkbox = gr.Checkbox(
+                        endless_ai_checkbox = gr.Checkbox(
                             value=False,
-                            label="Endlees AI Enabled",
+                            label="Endless AI Enabled",
                             visible=not args.image_mode,
                         )
 
@@ -1789,7 +1789,7 @@ def build_summarization(args, app_cfg, logger_):
             vlm_input_width,
             vlm_input_height,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
+            endless_ai_checkbox,
             enable_audio,
             chat_history_checkbox,
         ],
