@@ -299,6 +299,7 @@ class VideoFileFrameGetter:
         self._pipeline_width = 0
         self._pipeline_height = 0
         self._splitmuxsink = None
+        self._frame_counter = 0
         self._cached_frames_cv_meta = []  # List of cached frames cv meta for each chunk
         if "gdino_engine" in self._cv_pipeline_configs:
             self._gdino_engine = self._cv_pipeline_configs["gdino_engine"]
@@ -800,6 +801,42 @@ class VideoFileFrameGetter:
 
         qvideoconvert = Gst.ElementFactory.make("queue")
         pipeline.add(qvideoconvert)
+
+        qvc_src_pad = qvideoconvert.get_static_pad("src")
+
+        def save_all_frames_probe(pad, info, data):
+            buf = info.get_buffer()
+            if not buf:
+                return Gst.PadProbeReturn.OK
+
+            success, mapinfo = buf.map(Gst.MapFlags.READ)
+            if not success:
+                return Gst.PadProbeReturn.OK
+
+            try:
+                _, shape, strides, dataptr, size = pyds.get_nvds_buf_surface_gpu(hash(buf), 0)
+                ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+                ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+                c_data_ptr = ctypes.pythonapi.PyCapsule_GetPointer(dataptr, None)
+                unownedmem = cp.cuda.UnownedMemory(c_data_ptr, size, None)
+                memptr = cp.cuda.MemoryPointer(unownedmem, 0)
+                n_frame_gpu = cp.ndarray(
+                    shape=shape, dtype=np.uint8, memptr=memptr, strides=strides, order="C"
+                )
+                frame = cp.asnumpy(n_frame_gpu)
+                if frame.shape[-1] == 4:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+                else:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+                cv2.imwrite(f"/tmp/frame_{data._frame_counter:06d}.jpg", frame)
+                data._frame_counter += 1
+            finally:
+                buf.unmap(mapinfo)
+
+            return Gst.PadProbeReturn.OK
+
+        qvc_src_pad.add_probe(Gst.PadProbeType.BUFFER, save_all_frames_probe, self)
 
         if self._is_live and not os.environ.get("VSS_DISABLE_LIVESTREAM_PREVIEW", ""):
             logger.info(
