@@ -47,6 +47,7 @@ from torchvision.transforms import v2
 from chunk_info import ChunkInfo
 from utils import JsonCVMetadata, MediaFileInfo, get_json_file_name
 from via_logger import TimeMeasure, logger
+from frame_interceptor import FrameInterceptor
 
 gi.require_version("Gst", "1.0")
 
@@ -209,6 +210,9 @@ class VideoFileFrameGetter:
         data_type_int8=False,
         audio_support=False,
         cv_pipeline_configs={},
+        enable_frame_interception=False,
+        frame_interception_dir=None,
+        frame_interception_format="jpg",
     ) -> None:
         self._selected_pts_array = []
         self._last_gst_buffer = None
@@ -327,6 +331,13 @@ class VideoFileFrameGetter:
         if "inference_interval" in self._cv_pipeline_configs:
             self._inference_interval = self._cv_pipeline_configs["inference_interval"]
 
+        # Initialize frame interceptor
+        self._frame_interceptor = FrameInterceptor(
+            save_directory=frame_interception_dir,
+            save_format=frame_interception_format,
+            enabled=enable_frame_interception
+        )
+        
         if self._audio_support:
             self._create_asr_service_auth()
 
@@ -886,6 +897,17 @@ class VideoFileFrameGetter:
             buffer = info.get_buffer()
             if buffer.pts == Gst.CLOCK_TIME_NONE:
                 return Gst.PadProbeReturn.DROP
+
+            # INTERCEPT ALL FRAMES BEFORE FRAME SELECTION
+            # Get frame dimensions from pad caps for interception
+            caps = pad.get_current_caps()
+            if caps and self._frame_interceptor.enabled:
+                struct = caps.get_structure(0)
+                _, width = struct.get_int("width")
+                _, height = struct.get_int("height")
+                
+                # Intercept and save frame before frame selector decides
+                self._frame_interceptor.intercept_frame_gpu(buffer, width, height, buffer.pts)
 
             self._last_frame_pts = buffer.pts
 
@@ -1887,6 +1909,18 @@ class VideoFileFrameGetter:
             # print (f"Got frame with buffer_pts = :{buffer_pts}")
             if buffer_pts == Gst.CLOCK_TIME_NONE:
                 return Gst.PadProbeReturn.DROP
+            
+            # INTERCEPT ALL FRAMES BEFORE FRAME SELECTION (OSD Pipeline)
+            # Get frame dimensions from pad caps for interception
+            caps = pad.get_current_caps()
+            if caps and self._frame_interceptor.enabled:
+                struct = caps.get_structure(0)
+                _, width = struct.get_int("width")
+                _, height = struct.get_int("height")
+                
+                # Intercept and save frame before frame selector decides
+                self._frame_interceptor.intercept_frame_gpu(buffer, width, height, buffer_pts)
+            
             self._last_frame_pts = buffer_pts
             if self._is_live:
                 new_chunk = False
@@ -2927,6 +2961,10 @@ class VideoFileFrameGetter:
         logger.debug("Force quit loop")
         self._audio_stop.set()
         self._loop.quit()
+    
+    def get_frame_interceptor_stats(self):
+        """Get frame interceptor statistics"""
+        return self._frame_interceptor.get_stats()
 
 
 if __name__ == "__main__":
@@ -2984,6 +3022,28 @@ if __name__ == "__main__":
         default=False,
         help="enable CV pipeline",
     )
+    
+    parser.add_argument(
+        "--enable-frame-interception",
+        type=bool,
+        default=False,
+        help="enable frame interception to save all decoded frames",
+    )
+    
+    parser.add_argument(
+        "--frame-interception-dir",
+        type=str,
+        default=None,
+        help="directory to save intercepted frames (auto-generated if not specified)",
+    )
+    
+    parser.add_argument(
+        "--frame-interception-format",
+        type=str,
+        default="jpg",
+        choices=["jpg", "png", "raw"],
+        help="format to save intercepted frames",
+    )
 
     args = parser.parse_args()
 
@@ -2991,6 +3051,9 @@ if __name__ == "__main__":
         frame_selector=DefaultFrameSelector(args.num_frames),
         enable_jpeg_output=args.enable_jpeg_output,
         audio_support=args.enable_audio,
+        enable_frame_interception=args.enable_frame_interception,
+        frame_interception_dir=args.frame_interception_dir,
+        frame_interception_format=args.frame_interception_format,
     )
 
     if args.file_or_rtsp.startswith("rtsp://"):
@@ -3016,3 +3079,13 @@ if __name__ == "__main__":
             chunk, enable_audio=args.enable_audio
         )
         print(f"Picked {len(frames)} frames with times: {frames_pts}")
+        
+        # Print frame interception statistics
+        interceptor_stats = frame_getter.get_frame_interceptor_stats()
+        if interceptor_stats["enabled"]:
+            print(f"Frame Interceptor Statistics:")
+            print(f"  - Frames intercepted: {interceptor_stats['frames_intercepted']}")
+            print(f"  - Save directory: {interceptor_stats['save_directory']}")
+            print(f"  - Save format: {interceptor_stats['save_format']}")
+        else:
+            print("Frame interception was disabled")
