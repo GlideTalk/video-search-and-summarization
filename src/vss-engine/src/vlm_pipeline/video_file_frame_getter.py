@@ -806,13 +806,34 @@ class VideoFileFrameGetter:
 
         def save_all_frames_probe(pad, info, data):
             buf = info.get_buffer()
-            if buf:
-                success, mapinfo = buf.map(Gst.MapFlags.READ)
-                if success:
-                    frame = np.frombuffer(mapinfo.data, dtype=np.uint8)
-                    cv2.imwrite(f"/tmp/frame_{data._frame_counter:06d}.jpg", frame)
-                    data._frame_counter += 1
-                    buf.unmap(mapinfo)
+            if not buf:
+                return Gst.PadProbeReturn.OK
+
+            success, mapinfo = buf.map(Gst.MapFlags.READ)
+            if not success:
+                return Gst.PadProbeReturn.OK
+
+            try:
+                _, shape, strides, dataptr, size = pyds.get_nvds_buf_surface_gpu(hash(buf), 0)
+                ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+                ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+                c_data_ptr = ctypes.pythonapi.PyCapsule_GetPointer(dataptr, None)
+                unownedmem = cp.cuda.UnownedMemory(c_data_ptr, size, None)
+                memptr = cp.cuda.MemoryPointer(unownedmem, 0)
+                n_frame_gpu = cp.ndarray(
+                    shape=shape, dtype=np.uint8, memptr=memptr, strides=strides, order="C"
+                )
+                frame = cp.asnumpy(n_frame_gpu)
+                if frame.shape[-1] == 4:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+                else:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+                cv2.imwrite(f"/tmp/frame_{data._frame_counter:06d}.jpg", frame)
+                data._frame_counter += 1
+            finally:
+                buf.unmap(mapinfo)
+
             return Gst.PadProbeReturn.OK
 
         qvc_src_pad.add_probe(Gst.PadProbeType.BUFFER, save_all_frames_probe, self)
