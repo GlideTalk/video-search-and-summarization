@@ -863,15 +863,41 @@ class ChatCompletionMessageToolCall(ViaBaseModel):
     alert: ChatCompletionMessageAlertTool
 
 
+class ChatMessageImageUrl(ViaBaseModel):
+    """Image URL used inside a chat message."""
+
+    url: str = Field(max_length=256000, pattern=ANY_CHAR_PATTERN)
+    detail: str = Field(default="auto")
+
+
+class ChatMessageImage(ViaBaseModel):
+    """Image content part of a chat message."""
+
+    type: Literal["image_url"]
+    image_url: ChatMessageImageUrl
+
+
+class ChatMessageText(ViaBaseModel):
+    """Text content part of a chat message."""
+
+    type: Literal["text"]
+    text: Annotated[str, Field(max_length=256000, pattern=ANY_CHAR_PATTERN)]
+
+
+ChatMessageContent = Annotated[
+    Union[ChatMessageText, ChatMessageImage],
+    Field(discriminator="type"),
+]
+
+
 class ChatMessage(ViaBaseModel):
     """A chatbot chat message object. This object uniquely identify
     a query/response/other messages in a chatbot."""
 
-    content: str = Field(
-        description="The content of this message.",
-        max_length=256000,
-        pattern=ANY_CHAR_PATTERN,
-    )
+    content: Union[
+        Annotated[str, Field(max_length=256000, pattern=ANY_CHAR_PATTERN)],
+        list[ChatMessageContent],
+    ] = Field(description="The content of this message. Can be text or image list.")
     role: Literal["system", "user", "assistant"] = Field(
         description="The role of the author of this message."
     )
@@ -2488,11 +2514,17 @@ class ViaServer:
             if len(videoIdList) == 1:
                 assetList = [asset]
 
+            msg_content = query.messages[-1].content
+            if isinstance(msg_content, (dict, list)):
+                msg_content = json.dumps(msg_content)
+            else:
+                msg_content = str(msg_content)
+
             answer_resp = await loop.run_in_executor(
                 self._async_executor,
                 self._stream_handler.qa,
                 assetList,
-                str(query.messages[-1].content),
+                msg_content,
                 llm_generation_config,
                 media_info_start,
                 media_info_end,
