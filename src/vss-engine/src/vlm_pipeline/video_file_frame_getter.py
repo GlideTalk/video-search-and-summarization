@@ -299,6 +299,7 @@ class VideoFileFrameGetter:
         self._pipeline_width = 0
         self._pipeline_height = 0
         self._splitmuxsink = None
+        self._frame_counter = 0
         self._cached_frames_cv_meta = []  # List of cached frames cv meta for each chunk
         if "gdino_engine" in self._cv_pipeline_configs:
             self._gdino_engine = self._cv_pipeline_configs["gdino_engine"]
@@ -800,6 +801,21 @@ class VideoFileFrameGetter:
 
         qvideoconvert = Gst.ElementFactory.make("queue")
         pipeline.add(qvideoconvert)
+
+        qvc_src_pad = qvideoconvert.get_static_pad("src")
+
+        def save_all_frames_probe(pad, info, data):
+            buf = info.get_buffer()
+            if buf:
+                success, mapinfo = buf.map(Gst.MapFlags.READ)
+                if success:
+                    frame = np.frombuffer(mapinfo.data, dtype=np.uint8)
+                    cv2.imwrite(f"/tmp/frame_{data._frame_counter:06d}.jpg", frame)
+                    data._frame_counter += 1
+                    buf.unmap(mapinfo)
+            return Gst.PadProbeReturn.OK
+
+        qvc_src_pad.add_probe(Gst.PadProbeType.BUFFER, save_all_frames_probe, self)
 
         if self._is_live and not os.environ.get("VSS_DISABLE_LIVESTREAM_PREVIEW", ""):
             logger.info(
