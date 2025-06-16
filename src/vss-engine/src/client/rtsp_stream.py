@@ -27,13 +27,10 @@ from .ui_utils import (
     get_overlay_live_stream_preview_chunks,
 )
 
-from utils import StreamSettingsCache
-
 pipeline_args = None
 enable_logs = True
 logger: Logger = None
 appConfig = {}
-stream_settings_cache: StreamSettingsCache | None = None
 
 
 STANDALONE_MODE = False
@@ -478,7 +475,6 @@ async def add_rtsp_stream(
     enable_chat,
     enable_cv_metadata,
     cv_pipeline_prompt,
-    endlees_ai_enabled,
     enable_audio,
     clear,
     enable_chat_history,
@@ -511,11 +507,6 @@ async def add_rtsp_stream(
                 if resp.status != 200:
                     raise gr.Error(resp_json["message"].replace("\\'", "'"))
                 video_id = resp_json["id"]
-
-            if stream_settings_cache and video_id:
-                existing = stream_settings_cache.load_stream_settings(video_id=video_id)
-                existing.update({"endlees_ai_enabled": endlees_ai_enabled})
-                stream_settings_cache.update_stream_settings(video_id, existing)
 
             req_json = {
                 "id": video_id,
@@ -733,7 +724,6 @@ async def reconnect_live_stream(
     enable_chat,
     enable_cv_metadata,
     cv_pipeline_prompt,
-    endlees_ai_enabled,
     enable_audio,
     clear,
     enable_chat_history,
@@ -750,11 +740,6 @@ async def reconnect_live_stream(
         if resp.status >= 400:
             raise gr.Error(resp_json["message"])
         model = resp_json["data"][0]["id"]
-
-    if stream_settings_cache and video_id:
-        existing = stream_settings_cache.load_stream_settings(video_id=video_id)
-        existing.update({"endlees_ai_enabled": endlees_ai_enabled})
-        stream_settings_cache.update_stream_settings(video_id, existing)
 
     req_json = {
         "id": video_id,
@@ -900,12 +885,10 @@ def disable_clear():
 
 
 def build_rtsp_stream(args, app_cfg, logger_):
-    global appConfig, logger, pipeline_args, stream_settings_cache
+    global appConfig, logger, pipeline_args
     appConfig = app_cfg
     logger = logger_
     pipeline_args = args
-
-    stream_settings_cache = StreamSettingsCache(logger=logger)
 
     (
         default_prompt,
@@ -1092,11 +1075,6 @@ def build_rtsp_stream(args, app_cfg, logger_):
                             visible=bool(
                                 os.environ.get("DISABLE_CV_PIPELINE", "true").lower() == "false"
                             ),
-                        )
-
-                        endlees_ai_checkbox = gr.Checkbox(
-                            value=False,
-                            label="Endlees AI Enabled",
                         )
 
                 with gr.Tab("Create Alerts"):
@@ -1720,7 +1698,6 @@ def build_rtsp_stream(args, app_cfg, logger_):
             rag_top_k,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
             enable_audio,
             alerts_table,
             table_state,
@@ -1781,7 +1758,6 @@ def build_rtsp_stream(args, app_cfg, logger_):
             enable_chat,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
             enable_audio,
             clear,
             enable_chat_history,
@@ -1829,7 +1805,6 @@ def build_rtsp_stream(args, app_cfg, logger_):
             reconnect_button,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
             enable_audio,
             live_stream_id_preview,
             clear,
@@ -1881,7 +1856,6 @@ def build_rtsp_stream(args, app_cfg, logger_):
             enable_chat,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
             enable_audio,
             clear,
             enable_chat_history,
@@ -1929,7 +1903,6 @@ def build_rtsp_stream(args, app_cfg, logger_):
             reconnect_button,
             enable_cv_metadata,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
             enable_audio,
             clear,
             live_stream_id_preview,

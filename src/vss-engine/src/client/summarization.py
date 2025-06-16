@@ -25,13 +25,12 @@ import pkg_resources
 import yaml
 from gradio_videotimeline import VideoTimeline
 
-from utils import MediaFileInfo, StreamSettingsCache
+from utils import MediaFileInfo
 
 STANDALONE_MODE = True
 pipeline_args = None
 logger: Logger = None
 appConfig = {}
-stream_settings_cache: StreamSettingsCache | None = None
 
 DEFAULT_CHUNK_SIZE = 0
 DEFAULT_VIA_TARGET_RESPONSE_TIME = 2 * 60  # in seconds
@@ -459,7 +458,6 @@ async def summarize(
     vlm_input_width=0,
     vlm_input_height=0,
     cv_pipeline_prompt="",
-    endlees_ai_enabled=False,
     enable_audio=False,
     enable_chat_history=True,
     graph_rag_prompt_yaml=None,
@@ -534,11 +532,6 @@ async def summarize(
         if cv_pipeline_prompt:
             req_json["cv_pipeline_prompt"] = cv_pipeline_prompt
         req_json["enable_audio"] = enable_audio
-
-        if stream_settings_cache and media_ids:
-            existing = stream_settings_cache.load_stream_settings(video_id=media_ids[0])
-            existing.update({"endlees_ai_enabled": endlees_ai_enabled})
-            stream_settings_cache.update_stream_settings(media_ids[0], existing)
 
         parsed_alerts = []
         accumulated_responses = []
@@ -795,7 +788,6 @@ async def chat_checkbox_selected(chat_checkbox):
     )
 
 
-
 async def video_changed(video, image_mode):
     if video:
         if image_mode:
@@ -868,11 +860,10 @@ def get_display_image(f, image_mode):
 
 
 def build_summarization(args, app_cfg, logger_):
-    global appConfig, logger, pipeline_args, stream_settings_cache
+    global appConfig, logger, pipeline_args
     appConfig = app_cfg
     logger = logger_
     pipeline_args = args
-    stream_settings_cache = StreamSettingsCache(logger=logger)
 
     (
         default_prompt,
@@ -999,12 +990,6 @@ def build_summarization(args, app_cfg, logger_):
                             and bool(
                                 os.environ.get("DISABLE_CV_PIPELINE", "true").lower() == "false"
                             ),
-                        )
-
-                        endlees_ai_checkbox = gr.Checkbox(
-                            value=False,
-                            label="Endlees AI Enabled",
-                            visible=not args.image_mode,
                         )
 
                 with gr.Tab("Samples"):
@@ -1789,7 +1774,6 @@ def build_summarization(args, app_cfg, logger_):
             vlm_input_width,
             vlm_input_height,
             cv_pipeline_prompt,
-            endlees_ai_checkbox,
             enable_audio,
             chat_history_checkbox,
         ],
