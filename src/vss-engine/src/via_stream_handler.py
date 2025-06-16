@@ -1550,6 +1550,7 @@ class ViaStreamHandler:
         cache = StreamSettingsCache(logger=logger)
         settings = cache.load_stream_settings(video_id=req_info.stream_id)
         req_info.endless_ai_enabled = settings.get("endless_ai_enabled", False)
+        logger.info(f"ELAD! req_info.endless_ai_enabled: {req_info.endless_ai_enabled}")
         req_info.start_timestamp = start_timestamp
         req_info.end_timestamp = end_timestamp
         req_info.file_duration = file_duration
