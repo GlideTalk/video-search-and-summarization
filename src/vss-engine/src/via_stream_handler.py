@@ -47,7 +47,7 @@ from vss_ctx_rag.context_manager import ContextManager
 from asset_manager import Asset
 from chunk_info import ChunkInfo
 from cv_pipeline import CVPipeline
-from utils import MediaFileInfo, process_highlight_request
+from utils import MediaFileInfo, StreamSettingsCache, process_highlight_request
 from via_exception import ViaException
 from via_health_eval import GPUMonitor, RequestHealthMetrics
 from via_logger import TimeMeasure, logger
@@ -168,6 +168,7 @@ class RequestInfo:
         self.notification_temperature = None
         self.notification_max_tokens = None
         self.highlight = False
+        self.endless_ai_enabled = False
 
 
 class DCSerializer:
@@ -802,6 +803,7 @@ class ViaStreamHandler:
                             | {
                                 "uuid": req_info.stream_id,
                                 "cv_meta": cv_meta_str,
+                                "endless_ai_enabled": req_info.endless_ai_enabled,
                             }
                         ),
                         callback=lambda output: logger.debug(
@@ -822,6 +824,7 @@ class ViaStreamHandler:
                                 | {
                                     "uuid": req_info.stream_id,
                                     "cv_meta": cv_meta_str,
+                                    "endless_ai_enabled": req_info.endless_ai_enabled,
                                 }
                             ),
                             callback=lambda output: logger.debug(
@@ -1020,6 +1023,7 @@ class ViaStreamHandler:
 
         if req_info._ctx_mgr:
             ca_rag_config = copy.deepcopy(self._ca_rag_config)
+            ca_rag_config["endless_ai_enabled"] = req_info.endless_ai_enabled
 
             if req_info.caption_summarization_prompt:
                 ca_rag_config["summarization"]["prompts"][
@@ -1543,6 +1547,9 @@ class ViaStreamHandler:
         req_info.vlm_request_params.vlm_generation_config = generation_config
         req_info.assets = assets
         req_info.stream_id = req_info.assets[0].asset_id
+        cache = StreamSettingsCache(logger=logger)
+        settings = cache.load_stream_settings(video_id=req_info.stream_id)
+        req_info.endless_ai_enabled = settings.get("endless_ai_enabled", False)
         req_info.start_timestamp = start_timestamp
         req_info.end_timestamp = end_timestamp
         req_info.file_duration = file_duration
@@ -1570,7 +1577,9 @@ class ViaStreamHandler:
                 self._create_ctx_mgr_pool(self._ca_rag_config)
                 req_info._ctx_mgr = self.get_ctx_mgr(req_info.assets)
             try:
-                req_info._ctx_mgr.configure_update(config=self._ca_rag_config, req_info=req_info)
+                ca_cfg = copy.deepcopy(self._ca_rag_config)
+                ca_cfg["endless_ai_enabled"] = req_info.endless_ai_enabled
+                req_info._ctx_mgr.configure_update(config=ca_cfg, req_info=req_info)
             except Exception as ex:
                 logger.error(traceback.format_exc())
                 logger.error("Query failed for %s - %s", req_info.request_id, str(ex))
@@ -1932,6 +1941,9 @@ class ViaStreamHandler:
         req_info = RequestInfo()
         req_info.file = asset.path
         req_info.stream_id = asset.asset_id
+        cache = StreamSettingsCache(logger=logger)
+        settings = cache.load_stream_settings(video_id=req_info.stream_id)
+        req_info.endless_ai_enabled = settings.get("endless_ai_enabled", False)
         req_info.chunk_size = chunk_duration
         req_info.is_summarization = True
         req_info.vlm_request_params.vlm_prompt = query
@@ -1968,7 +1980,9 @@ class ViaStreamHandler:
                 self._create_ctx_mgr_pool(self._ca_rag_config)
                 req_info._ctx_mgr = self.get_ctx_mgr(req_info.assets)
             try:
-                req_info._ctx_mgr.configure_update(config=self._ca_rag_config, req_info=req_info)
+                ca_cfg = copy.deepcopy(self._ca_rag_config)
+                ca_cfg["endless_ai_enabled"] = req_info.endless_ai_enabled
+                req_info._ctx_mgr.configure_update(config=ca_cfg, req_info=req_info)
             except Exception as ex:
                 logger.error(traceback.format_exc())
                 logger.error("Query failed for %s - %s", req_info.request_id, str(ex))
@@ -1989,6 +2003,7 @@ class ViaStreamHandler:
             req_info.notification_temperature = notification_temperature
             req_info.notification_max_tokens = notification_max_tokens
             ca_rag_config = copy.deepcopy(self._ca_rag_config)
+            ca_rag_config["endless_ai_enabled"] = req_info.endless_ai_enabled
 
             if req_info.caption_summarization_prompt:
                 ca_rag_config["summarization"]["prompts"][
