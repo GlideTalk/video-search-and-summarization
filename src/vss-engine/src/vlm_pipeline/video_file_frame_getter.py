@@ -28,6 +28,7 @@ import sys
 import threading
 import time
 import uuid
+import tempfile
 from datetime import datetime, timezone
 from threading import Condition, Event, Lock
 from typing import Callable
@@ -1139,12 +1140,48 @@ class VideoFileFrameGetter:
                 add_to_cache(buffer, width, height)
             return Gst.FlowReturn.OK
 
+        def get_image_arrays(buffer):
+            logger.info("ARYEH1")
+            _, shape, strides, dataptr, size = pyds.get_nvds_buf_surface_gpu(hash(buffer), 0)
+            logger.info("ARYEH2")
+            ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+            ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+            owner = None
+            c_data_ptr = ctypes.pythonapi.PyCapsule_GetPointer(dataptr, None)
+            unownedmem = cp.cuda.UnownedMemory(c_data_ptr, size, owner)
+            memptr = cp.cuda.MemoryPointer(unownedmem, 0)
+            n_frame_gpu = cp.ndarray(
+                shape=shape, dtype=np.uint8, memptr=memptr, strides=strides, order="C"
+            )
+            logger.info(f"n_frame_gpu={n_frame_gpu} n_frame_gpu.type={type(n_frame_gpu)}")
+            numpy_array = cp.asnumpy(n_frame_gpu)
+            logger.info(f"numpy_array={numpy_array} numpy_array.type={type(numpy_array)}")
+            if numpy_array.ndim == 3 and numpy_array.shape[0] in (1, 3):
+                numpy_array = np.transpose(numpy_array, (1, 2, 0))
+
+            # Create debug frame for saving
+            debug_frame = numpy_array.copy()
+            tmp_file = os.path.join(
+                tempfile.gettempdir(),
+                f"frame_{buffer.pts}.bmp",
+            )
+            cv2.imwrite(tmp_file, debug_frame)
+
+            image_tensor = torch.tensor(
+                n_frame_gpu, dtype=torch.uint8, requires_grad=False, device="cuda"
+            )
+            logger.info(f"image_tensor={image_tensor} image_tensor.type={type(image_tensor)}")
+            return n_frame_gpu, image_tensor, numpy_array
+
         def on_new_sample_extract(appsink_extract):
             # Appsink callback to pull frame from the extraction pipeline and log buffer.pts
             sample = appsink_extract.emit("pull-sample")
+            logger.info("WE GOT TO on_new_sample_extract 1111")
             if sample:
                 buffer = sample.get_buffer()
-                logger.info(f"Frame extraction - buffer.pts: {buffer.pts}")
+                logger.info(f"Frame extraction 1111 - buffer.pts: {buffer.pts}")
+                n_frame_gpu, image_tensor, numpy_array = get_image_arrays(buffer);
+                logger.info(f"n_frame_gpu={n_frame_gpu}, image_tensor={image_tensor}, numpy_array={numpy_array}")
             return Gst.FlowReturn.OK
 
         def on_new_sample_audio(audio_appsink):
