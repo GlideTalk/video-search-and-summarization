@@ -827,9 +827,15 @@ class VideoFileFrameGetter:
         tee_after_convert = Gst.ElementFactory.make("tee")
         pipeline.add(tee_after_convert)
 
-        # Create additional queue and appsink for frame extraction
+        # Create additional queue and videoconvert for frame extraction
         q_frame_extract = Gst.ElementFactory.make("queue")
         pipeline.add(q_frame_extract)
+
+        # Create separate videoconvert for extraction branch
+        videoconvert_extract = Gst.ElementFactory.make("nvvideoconvert")
+        videoconvert_extract.set_property("nvbuf-memory-type", 2)
+        videoconvert_extract.set_property("gpu-id", self._gpu_id)
+        pipeline.add(videoconvert_extract)
 
         if self._enable_jpeg_output:
             jpegenc = Gst.ElementFactory.make("nvjpegenc")
@@ -1353,13 +1359,12 @@ class VideoFileFrameGetter:
         pad.add_probe(Gst.PadProbeType.EVENT_DOWNSTREAM, buffer_probe_event_eos, self)
         pad.add_probe(Gst.PadProbeType.QUERY_DOWNSTREAM, cb_ntpquery, self)
 
-        qvideoconvert.link(videoconvert)
-
-        # Link videoconvert to tee to split the stream
-        videoconvert.link(tee_after_convert)
+        # Link qvideoconvert to tee to split the stream BEFORE frame selection
+        qvideoconvert.link(tee_after_convert)
         
-        # Link main branch: tee -> capsfilter -> q2 -> appsink
-        tee_after_convert.link(capsfilter)
+        # Link main branch (with frame selection): tee -> videoconvert -> capsfilter -> q2 -> appsink
+        tee_after_convert.link(videoconvert)
+        videoconvert.link(capsfilter)
         if self._enable_jpeg_output:
             capsfilter.link(jpegenc)
             jpegenc.link(q2)
@@ -1368,9 +1373,10 @@ class VideoFileFrameGetter:
 
         q2.link(appsink)
         
-        # Link extraction branch: tee -> q_frame_extract -> capsfilter_extract -> q_extract_final -> appsink_extract
+        # Link extraction branch (ALL frames): tee -> q_frame_extract -> videoconvert_extract -> capsfilter_extract -> q_extract_final -> appsink_extract
         tee_after_convert.link(q_frame_extract)
-        q_frame_extract.link(capsfilter_extract)
+        q_frame_extract.link(videoconvert_extract)
+        videoconvert_extract.link(capsfilter_extract)
         capsfilter_extract.link(q_extract_final)
         q_extract_final.link(appsink_extract)
 
