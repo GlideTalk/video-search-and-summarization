@@ -51,7 +51,6 @@ class VlmModelType(Enum):
     VILA_15 = "vila-1.5"
     NVILA = "nvila"
     OPENAI_COMPATIBLE = "openai-compat"  # Any OpenAI API compatible on NIM/OpenAI/Azure-OpenAI
-    GEMINI_COMPAT = "gemini-compat"
     CLAUDE_COMPAT = "claude-compat"
 
     def __str__(self):
@@ -225,7 +224,6 @@ class DecoderProcess(ViaProcessBase):
 
         elif self._vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
             if not self._nfrms or self._nfrms > 10:
@@ -515,7 +513,6 @@ class EmbeddingProcess(ViaProcessBase):
             )
         elif self._vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
             from models.common.frame_jpeg_tensor_generator import (
@@ -652,7 +649,6 @@ class VlmProcess(ViaProcessBase):
         # RuntimeError: No CUDA GPUs are available
         if self._vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
             use_gpu_mem_for_embedding_load = False
@@ -687,15 +683,9 @@ class VlmProcess(ViaProcessBase):
 
         elif self._vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
-            if self._vlm_model_type == VlmModelType.GEMINI_COMPAT:
-                from models.gemini_compat.gemini_compat_model import (
-                    GeminiCompatModel,
-                )
-                self._model = GeminiCompatModel()
-            elif self._vlm_model_type == VlmModelType.CLAUDE_COMPAT:
+            if self._vlm_model_type == VlmModelType.CLAUDE_COMPAT:
                 from models.claude_compat.claude_compat_model import (
                     ClaudeCompatModel,
                 )
@@ -765,7 +755,6 @@ class VlmProcess(ViaProcessBase):
             ctx = NVilaContext(self._model)
         elif self._vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
             from models.common.model_context_frame_input import ModelContextFrameInput
@@ -1116,7 +1105,6 @@ class VlmPipeline:
         use_gpu_mem_for_embedding_load = True
         if args.vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
             # Embedding sent to network; can avoid GPU mem
@@ -1158,14 +1146,9 @@ class VlmPipeline:
 
         if args.vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
-            if args.vlm_model_type == VlmModelType.GEMINI_COMPAT:
-                from models.gemini_compat.gemini_compat_model import GeminiCompatModel
-
-                GeminiCompatModel()
-            elif args.vlm_model_type == VlmModelType.CLAUDE_COMPAT:
+            if args.vlm_model_type == VlmModelType.CLAUDE_COMPAT:
                 from models.claude_compat.claude_compat_model import ClaudeCompatModel
 
                 ClaudeCompatModel()
@@ -1177,7 +1160,6 @@ class VlmPipeline:
         # Model path is required for locally executed models like VILA
         if args.vlm_model_type not in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ] and not args.model_path:
             raise Exception("model-path not provided")
@@ -1361,7 +1343,6 @@ class VlmPipeline:
         self._num_vlm_procs = args.num_gpus
         if args.vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
             self._num_vlm_procs = args.num_vlm_procs
@@ -1570,14 +1551,9 @@ class VlmPipeline:
             id, api_type, owned_by = Vila15.get_model_info()
         elif self._args.vlm_model_type in [
             VlmModelType.OPENAI_COMPATIBLE,
-            VlmModelType.GEMINI_COMPAT,
             VlmModelType.CLAUDE_COMPAT,
         ]:
-            if self._args.vlm_model_type == VlmModelType.GEMINI_COMPAT:
-                from models.gemini_compat.gemini_compat_model import GeminiCompatModel
-
-                id, api_type, owned_by = GeminiCompatModel.get_model_info()
-            elif self._args.vlm_model_type == VlmModelType.CLAUDE_COMPAT:
+            if self._args.vlm_model_type == VlmModelType.CLAUDE_COMPAT:
                 from models.claude_compat.claude_compat_model import ClaudeCompatModel
 
                 id, api_type, owned_by = ClaudeCompatModel.get_model_info()
@@ -1726,7 +1702,7 @@ class VlmPipeline:
             default=1,
             type=int,
             help=
-            "Number of VLM processes to use in parallel; applicable for openai-compat, gemini-compat and claude-compat; others == num-gpus",
+            "Number of VLM processes to use in parallel; applicable for openai-compat and claude-compat; others == num-gpus",
         )
         parser.add_argument(
             "--num-decoders-per-gpu",
