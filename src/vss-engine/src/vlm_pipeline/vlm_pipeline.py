@@ -318,8 +318,7 @@ class DecoderProcess(ViaProcessBase):
         if vlm_input_width or vlm_input_height:
             fgetter._set_frame_resolution(vlm_input_width, vlm_input_height)
         cache = StreamSettingsCache(logger=logger)
-        settings = cache.load_stream_settings(chunk.streamId)
-        fgetter.set_endless_ai_enabled(settings.get("endless_ai_enabled", False))
+        fgetter.set_endless_ai_enabled(cache.get_endless_ai_enabled())
         frames, frame_times, audio_frames = fgetter.get_frames(
             chunk, True, frame_selector, enable_audio, request_id=kwargs["request_id"]
         )
@@ -401,8 +400,7 @@ class DecoderProcess(ViaProcessBase):
             cv_pipeline_configs=self._cv_pipeline_configs,
         )
         cache = StreamSettingsCache(logger=logger)
-        settings = cache.load_stream_settings(live_stream_id)
-        fgetter.set_endless_ai_enabled(settings.get("endless_ai_enabled", False))
+        fgetter.set_endless_ai_enabled(cache.get_endless_ai_enabled())
         if vlm_input_width or vlm_input_height:
             fgetter._set_frame_resolution(vlm_input_width, vlm_input_height)
 

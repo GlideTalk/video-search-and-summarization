@@ -1548,8 +1548,7 @@ class ViaStreamHandler:
         req_info.assets = assets
         req_info.stream_id = req_info.assets[0].asset_id
         cache = StreamSettingsCache(logger=logger)
-        settings = cache.load_stream_settings(video_id=req_info.stream_id)
-        req_info.endless_ai_enabled = settings.get("endless_ai_enabled", False)
+        req_info.endless_ai_enabled = cache.get_endless_ai_enabled()
         logger.info(f"ELAD! req_info.endless_ai_enabled: {req_info.endless_ai_enabled}")
         req_info.start_timestamp = start_timestamp
         req_info.end_timestamp = end_timestamp
@@ -1943,8 +1942,7 @@ class ViaStreamHandler:
         req_info.file = asset.path
         req_info.stream_id = asset.asset_id
         cache = StreamSettingsCache(logger=logger)
-        settings = cache.load_stream_settings(video_id=req_info.stream_id)
-        req_info.endless_ai_enabled = settings.get("endless_ai_enabled", False)
+        req_info.endless_ai_enabled = cache.get_endless_ai_enabled()
         req_info.chunk_size = chunk_duration
         req_info.is_summarization = True
         req_info.vlm_request_params.vlm_prompt = query

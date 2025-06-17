@@ -512,10 +512,8 @@ async def add_rtsp_stream(
                     raise gr.Error(resp_json["message"].replace("\\'", "'"))
                 video_id = resp_json["id"]
 
-            if stream_settings_cache and video_id:
-                existing = stream_settings_cache.load_stream_settings(video_id=video_id)
-                existing.update({"endless_ai_enabled": endless_ai_enabled})
-                stream_settings_cache.update_stream_settings(video_id, existing)
+            if stream_settings_cache:
+                stream_settings_cache.set_endless_ai_enabled(endless_ai_enabled)
 
             req_json = {
                 "id": video_id,
@@ -751,10 +749,8 @@ async def reconnect_live_stream(
             raise gr.Error(resp_json["message"])
         model = resp_json["data"][0]["id"]
 
-    if stream_settings_cache and video_id:
-        existing = stream_settings_cache.load_stream_settings(video_id=video_id)
-        existing.update({"endless_ai_enabled": endless_ai_enabled})
-        stream_settings_cache.update_stream_settings(video_id, existing)
+    if stream_settings_cache:
+        stream_settings_cache.set_endless_ai_enabled(endless_ai_enabled)
 
     req_json = {
         "id": video_id,
