@@ -450,6 +450,7 @@ async def summarize(
     rag_batch_size,
     rag_type,
     rag_top_k,
+    request: gr.Request,
     summarize=None,
     enable_chat=True,
     alerts_table=None,
@@ -462,7 +463,6 @@ async def summarize(
     enable_audio=False,
     enable_chat_history=True,
     graph_rag_prompt_yaml=None,
-    request: gr.Request,
 ):
     logger.info(f"summarize. ip: {request.client.host}")
     if gr_video is None:
@@ -794,7 +794,7 @@ async def chat_checkbox_selected(chat_checkbox):
 
 
 def endless_ai_checkbox_changed(endless_ai_enabled):
-    if stream_settings_cache and endless_ai_enabled is not None:
+    if endless_ai_enabled is not None:
         stream_settings_cache.set_endless_ai_enabled(endless_ai_enabled)
     return
 
