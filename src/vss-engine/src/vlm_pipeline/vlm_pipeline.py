@@ -51,6 +51,7 @@ class VlmModelType(Enum):
     VILA_15 = "vila-1.5"
     NVILA = "nvila"
     OPENAI_COMPATIBLE = "openai-compat"  # Any OpenAI API compatible on NIM/OpenAI/Azure-OpenAI
+    CLAUDE_COMPAT = "claude-compat"
 
     def __str__(self):
         return self.value
@@ -221,7 +222,10 @@ class DecoderProcess(ViaProcessBase):
             self._minframes = 1
             self._data_type_int8 = True
 
-        elif self._vlm_model_type in [VlmModelType.OPENAI_COMPATIBLE]:
+        elif self._vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
             if not self._nfrms or self._nfrms > 10:
                 self._nfrms = 10
             self._minframes = 1
@@ -507,7 +511,10 @@ class EmbeddingProcess(ViaProcessBase):
                 trt_engine_dir=self._trt_engine_dir,
                 async_output=True,
             )
-        elif self._vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
+        elif self._vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
             from models.common.frame_jpeg_tensor_generator import (
                 FrameJPEGTensorGenerator,
             )
@@ -640,7 +647,10 @@ class VlmProcess(ViaProcessBase):
         # Also: torch.cuda_init() from parallel threads without as may GPUs
         # give error:
         # RuntimeError: No CUDA GPUs are available
-        if self._vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
+        if self._vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
             use_gpu_mem_for_embedding_load = False
         self._emb_helper = EmbeddingHelper(
             self._asset_dir, use_gpu_mem=use_gpu_mem_for_embedding_load
@@ -671,10 +681,20 @@ class VlmProcess(ViaProcessBase):
             )
             self._batch_size = 1
 
-        elif self._vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
-            from models.openai_compat.openai_compat_model import CompOpenAIModel
-
-            self._model = CompOpenAIModel(True)
+        elif self._vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
+            if self._vlm_model_type == VlmModelType.CLAUDE_COMPAT:
+                from models.claude_compat.claude_compat_model import (
+                    ClaudeCompatModel,
+                )
+                self._model = ClaudeCompatModel()
+            else:
+                from models.openai_compat.openai_compat_model import (
+                    CompOpenAIModel,
+                )
+                self._model = CompOpenAIModel(True)
             self._batch_size = 1
         elif self._vlm_model_type is None:
             loader = CustomModuleLoader(self._model_path)
@@ -733,7 +753,10 @@ class VlmProcess(ViaProcessBase):
             from models.nvila.nvila_context import NVilaContext
 
             ctx = NVilaContext(self._model)
-        elif self._vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
+        elif self._vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
             from models.common.model_context_frame_input import ModelContextFrameInput
 
             ctx = ModelContextFrameInput(self._model)
@@ -1080,7 +1103,10 @@ class VlmPipeline:
 
         self._start_time = time.time()
         use_gpu_mem_for_embedding_load = True
-        if args.vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
+        if args.vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
             # Embedding sent to network; can avoid GPU mem
             # Also: torch.cuda_init() from parallel threads without as may GPUs
             # give error:
@@ -1118,13 +1144,24 @@ class VlmPipeline:
 
         self._enqueue_lock = Lock()
 
-        if args.vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
-            from models.openai_compat.openai_compat_model import CompOpenAIModel
+        if args.vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
+            if args.vlm_model_type == VlmModelType.CLAUDE_COMPAT:
+                from models.claude_compat.claude_compat_model import ClaudeCompatModel
 
-            CompOpenAIModel()
+                ClaudeCompatModel()
+            else:
+                from models.openai_compat.openai_compat_model import CompOpenAIModel
+
+                CompOpenAIModel()
 
         # Model path is required for locally executed models like VILA
-        if args.vlm_model_type != VlmModelType.OPENAI_COMPATIBLE and not args.model_path:
+        if args.vlm_model_type not in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ] and not args.model_path:
             raise Exception("model-path not provided")
 
         if args.model_path and args.model_path.startswith("ngc:"):
@@ -1304,7 +1341,10 @@ class VlmPipeline:
                 asr_proc.start()
 
         self._num_vlm_procs = args.num_gpus
-        if args.vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
+        if args.vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
             self._num_vlm_procs = args.num_vlm_procs
         logger.info(f"num_vlm_procs set to {self._num_vlm_procs}")
 
@@ -1509,10 +1549,18 @@ class VlmPipeline:
             from models.vila15.vila15_model import Vila15
 
             id, api_type, owned_by = Vila15.get_model_info()
-        elif self._args.vlm_model_type == VlmModelType.OPENAI_COMPATIBLE:
-            from models.openai_compat.openai_compat_model import CompOpenAIModel
+        elif self._args.vlm_model_type in [
+            VlmModelType.OPENAI_COMPATIBLE,
+            VlmModelType.CLAUDE_COMPAT,
+        ]:
+            if self._args.vlm_model_type == VlmModelType.CLAUDE_COMPAT:
+                from models.claude_compat.claude_compat_model import ClaudeCompatModel
 
-            id, api_type, owned_by = CompOpenAIModel.get_model_info()
+                id, api_type, owned_by = ClaudeCompatModel.get_model_info()
+            else:
+                from models.openai_compat.openai_compat_model import CompOpenAIModel
+
+                id, api_type, owned_by = CompOpenAIModel.get_model_info()
         elif self._args.vlm_model_type == VlmModelType.NVILA:
             from models.nvila.nvila_model import NVila
 
@@ -1653,8 +1701,8 @@ class VlmPipeline:
             "--num-vlm-procs",
             default=1,
             type=int,
-            help="Number of VLM processes to use in parallel;"
-            " applicable only for openai-compat; others == num-gpus",
+            help=
+            "Number of VLM processes to use in parallel; applicable for openai-compat and claude-compat; others == num-gpus",
         )
         parser.add_argument(
             "--num-decoders-per-gpu",

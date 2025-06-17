@@ -133,9 +133,9 @@ VSS Engine 2.3.0 Source Code has the following known CVEs:
 |   CVE    | Description |
 |----------|-------------|
 | [CVE-2024-7246](https://nvd.nist.gov/vuln/detail/CVE-2024-7246) | This affects the gRPC python package. It's possible for a gRPC client communicating with a HTTP/2 proxy to poison the HPACK table between the proxy and the backend such that other clients see failed requests. By default, VSS does not use a HTTP/2 proxy.|
-| [CVE-2024-27444](https://github.com/advisories/GHSA-v8vj-cv27-hjv8) | This issue is reported for langchain-milvus 0.1.5 dependency on older langchain version 0.1.5. However, VSS explicitly uses langchain 0.3.3 and hence is not applicable.|
-| [CVE-2024-28088](https://github.com/advisories/GHSA-h59x-p739-982c) | This issue is reported for langchain-milvus 0.1.5 dependency on older langchain version 0.1.5. However, VSS explicitly uses langchain 0.3.3 and hence is not applicable. |
-| [CVE-2024-38459](https://github.com/advisories/GHSA-wmvm-9vqv-5qpp) | This issue is reported for langchain-milvus 0.1.5 dependency on older langchain version 0.1.5. However, VSS explicitly uses langchain 0.3.3 and hence is not applicable. |
+| [CVE-2024-27444](https://github.com/advisories/GHSA-v8vj-cv27-hjv8) | This issue is reported for langchain-milvus 0.1.5 dependency on older langchain version 0.1.5. However, VSS now uses langchain-aws and hence is not applicable.|
+| [CVE-2024-28088](https://github.com/advisories/GHSA-h59x-p739-982c) | This issue is reported for langchain-milvus 0.1.5 dependency on older langchain version 0.1.5. However, VSS now uses langchain-aws and hence is not applicable. |
+| [CVE-2024-38459](https://github.com/advisories/GHSA-wmvm-9vqv-5qpp) | This issue is reported for langchain-milvus 0.1.5 dependency on older langchain version 0.1.5. However, VSS now uses langchain-aws and hence is not applicable. |
 	
 ## License
 The software and materials in this repository are governed by the [NVIDIA Software License Agreement](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/) and the Product-Specific Terms for [NVIDIA AI Products](https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/); except for models which are governed by the [NVIDIA Community Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-community-models-license/).

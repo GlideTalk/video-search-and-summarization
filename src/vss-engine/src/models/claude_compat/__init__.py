@@ -1,0 +1,1 @@
+from .claude_compat_model import ClaudeCompatModel
