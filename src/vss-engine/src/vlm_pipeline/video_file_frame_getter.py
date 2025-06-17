@@ -28,6 +28,7 @@ import sys
 import threading
 import time
 import uuid
+import tempfile
 from datetime import datetime, timezone
 from threading import Condition, Event, Lock
 from typing import Callable
@@ -823,6 +824,20 @@ class VideoFileFrameGetter:
         videoconvert.set_property("gpu-id", self._gpu_id)
         pipeline.add(videoconvert)
 
+        # Create tee to split the stream after videoconvert
+        tee_after_convert = Gst.ElementFactory.make("tee")
+        pipeline.add(tee_after_convert)
+
+        # Create additional queue and videoconvert for frame extraction
+        q_frame_extract = Gst.ElementFactory.make("queue")
+        pipeline.add(q_frame_extract)
+
+        # Create separate videoconvert for extraction branch
+        videoconvert_extract = Gst.ElementFactory.make("nvvideoconvert")
+        videoconvert_extract.set_property("nvbuf-memory-type", 2)
+        videoconvert_extract.set_property("gpu-id", self._gpu_id)
+        pipeline.add(videoconvert_extract)
+
         if self._enable_jpeg_output:
             jpegenc = Gst.ElementFactory.make("nvjpegenc")
             pipeline.add(jpegenc)
@@ -844,6 +859,32 @@ class VideoFileFrameGetter:
             ),
         )
         pipeline.add(capsfilter)
+
+        # Create additional capsfilter and queue for frame extraction branch
+        capsfilter_extract = Gst.ElementFactory.make("capsfilter")
+        capsfilter_extract.set_property(
+            "caps",
+            Gst.Caps.from_string(
+                (
+                    f"video/x-raw(memory:NVMM), format={format},"
+                    f" width={self._frame_width}, height={self._frame_height}"
+                )
+                if self._frame_width and self._frame_height
+                else f"video/x-raw(memory:NVMM), format={format}"
+            ),
+        )
+        pipeline.add(capsfilter_extract)
+
+        q_extract_final = Gst.ElementFactory.make("queue")
+        pipeline.add(q_extract_final)
+
+        # Create appsink for frame extraction
+        appsink_extract = Gst.ElementFactory.make("appsink")
+        appsink_extract.set_property("async", False)
+        appsink_extract.set_property("sync", False)
+        appsink_extract.set_property("enable-last-sample", False)
+        appsink_extract.set_property("emit-signals", True)
+        pipeline.add(appsink_extract)
 
         self._audio_q1 = None
         if self._audio_support:
@@ -1099,6 +1140,50 @@ class VideoFileFrameGetter:
                 add_to_cache(buffer, width, height)
             return Gst.FlowReturn.OK
 
+        def get_image_arrays(buffer):
+            logger.info("ARYEH1")
+            _, shape, strides, dataptr, size = pyds.get_nvds_buf_surface_gpu(hash(buffer), 0)
+            logger.info("ARYEH2")
+            ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+            ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+            owner = None
+            c_data_ptr = ctypes.pythonapi.PyCapsule_GetPointer(dataptr, None)
+            unownedmem = cp.cuda.UnownedMemory(c_data_ptr, size, owner)
+            memptr = cp.cuda.MemoryPointer(unownedmem, 0)
+            n_frame_gpu = cp.ndarray(
+                shape=shape, dtype=np.uint8, memptr=memptr, strides=strides, order="C"
+            )
+            logger.info(f"n_frame_gpu={n_frame_gpu} n_frame_gpu.type={type(n_frame_gpu)}")
+            numpy_array = cp.asnumpy(n_frame_gpu)
+            logger.info(f"numpy_array={numpy_array} numpy_array.type={type(numpy_array)}")
+            if numpy_array.ndim == 3 and numpy_array.shape[0] in (1, 3):
+                numpy_array = np.transpose(numpy_array, (1, 2, 0))
+
+            # Create debug frame for saving
+            debug_frame = numpy_array.copy()
+            tmp_file = os.path.join(
+                tempfile.gettempdir(),
+                f"frame_{buffer.pts}.bmp",
+            )
+            cv2.imwrite(tmp_file, debug_frame)
+
+            image_tensor = torch.tensor(
+                n_frame_gpu, dtype=torch.uint8, requires_grad=False, device="cuda"
+            )
+            logger.info(f"image_tensor={image_tensor} image_tensor.type={type(image_tensor)}")
+            return n_frame_gpu, image_tensor, numpy_array
+
+        def on_new_sample_extract(appsink_extract):
+            # Appsink callback to pull frame from the extraction pipeline and log buffer.pts
+            sample = appsink_extract.emit("pull-sample")
+            logger.info("WE GOT TO on_new_sample_extract 1111")
+            if sample:
+                buffer = sample.get_buffer()
+                logger.info(f"Frame extraction 1111 - buffer.pts: {buffer.pts}")
+                n_frame_gpu, image_tensor, numpy_array = get_image_arrays(buffer);
+                logger.info(f"n_frame_gpu={n_frame_gpu}, image_tensor={image_tensor}, numpy_array={numpy_array}")
+            return Gst.FlowReturn.OK
+
         def on_new_sample_audio(audio_appsink):
             # Appsink callback to pull audio samples from the pipeline
             sample = audio_appsink.emit("pull-sample")
@@ -1136,6 +1221,9 @@ class VideoFileFrameGetter:
         appsink.set_property("emit-signals", True)
         appsink.connect("new-sample", on_new_sample)
         pipeline.add(appsink)
+
+        # Connect the extraction appsink callback  
+        appsink_extract.connect("new-sample", on_new_sample_extract)
 
         if self._audio_support:
             self._audio_appsink = Gst.ElementFactory.make("appsink")
@@ -1308,8 +1396,11 @@ class VideoFileFrameGetter:
         pad.add_probe(Gst.PadProbeType.EVENT_DOWNSTREAM, buffer_probe_event_eos, self)
         pad.add_probe(Gst.PadProbeType.QUERY_DOWNSTREAM, cb_ntpquery, self)
 
-        qvideoconvert.link(videoconvert)
-
+        # Link qvideoconvert to tee to split the stream BEFORE frame selection
+        qvideoconvert.link(tee_after_convert)
+        
+        # Link main branch (with frame selection): tee -> videoconvert -> capsfilter -> q2 -> appsink
+        tee_after_convert.link(videoconvert)
         videoconvert.link(capsfilter)
         if self._enable_jpeg_output:
             capsfilter.link(jpegenc)
@@ -1318,6 +1409,13 @@ class VideoFileFrameGetter:
             capsfilter.link(q2)
 
         q2.link(appsink)
+        
+        # Link extraction branch (ALL frames): tee -> q_frame_extract -> videoconvert_extract -> capsfilter_extract -> q_extract_final -> appsink_extract
+        tee_after_convert.link(q_frame_extract)
+        q_frame_extract.link(videoconvert_extract)
+        videoconvert_extract.link(capsfilter_extract)
+        capsfilter_extract.link(q_extract_final)
+        q_extract_final.link(appsink_extract)
 
         def audio_buffer_probe(pad, info, data):
             # Probe callback function to pass chosen frames and drop other frames
