@@ -1,19 +1,19 @@
 import os
 import json
-import boto3
+from langchain_aws.chat_models import ChatBedrock
 from models.openai_compat.openai_compat_model import tensor_to_base64_jpeg
 from via_logger import TimeMeasure, logger
 
 
 class ClaudeCompatModel:
-    """Direct AWS Bedrock SDK wrapper for Claude vision language model."""
+    """AWS Bedrock Claude model accessed via langchain-aws."""
 
     def __init__(self):
-        self._client = boto3.client(
-            'bedrock-runtime',
+        self._client = ChatBedrock(
             region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+            model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
             aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         )
         self._model_id = "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
@@ -48,7 +48,7 @@ class ClaudeCompatModel:
             
             with TimeMeasure("Claude model inference"):
                 try:
-                    response = self._client.invoke_model(
+                    response = self._client.client.invoke_model(
                         modelId=self._model_id,
                         body=body,
                         contentType="application/json"
