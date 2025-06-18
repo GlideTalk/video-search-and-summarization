@@ -168,10 +168,11 @@ class RetrieveCache:
             stream_settings = self.stream_settings_cache.load_stream_settings(video_id=video_id)
             self.logger.info(f"Stream settings: {stream_settings}")
 
-        endless_setting = self.stream_settings_cache.get_endless_ai_enabled()
         if stream_settings is None:
             stream_settings = {}
-        stream_settings["endless_ai_enabled"] = endless_setting
+        stream_settings["endless_ai_enabled"] = stream_settings.get(
+            "endless_ai_enabled", False
+        )
 
         id_settings = stream_settings if stream_settings else {}
 

@@ -342,10 +342,6 @@ class VideoFileFrameGetter:
             self._frame_height = frame_height
             self._destroy_pipeline = True
 
-    def set_endless_ai_enabled(self, enabled: bool):
-        """Set Endless AI flag."""
-        self._endless_ai_enabled = enabled
-
     def _preprocess(self, frames):
         if frames and not self._enable_jpeg_output:
             frames = torch.stack(frames)

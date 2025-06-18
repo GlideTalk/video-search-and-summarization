@@ -582,24 +582,6 @@ class StreamSettingsCache:
         except Exception as e:
             self.logger.error(f"Failed to save stream settings: {str(e)}")
 
-    def set_endless_ai_enabled(self, enabled: bool):
-        """Persist the global endless_ai_enabled setting"""
-        try:
-            settings = self.load_stream_settings()
-            settings["endless_ai_enabled"] = enabled
-            with open(self.stream_settings_fp, "w") as f:
-                json.dump(settings, f, indent=4)
-            if self.logger:
-                self.logger.debug(
-                    f"Set endless_ai_enabled to {enabled} in {self.stream_settings_fp}"
-                )
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Failed to save endless_ai_enabled: {str(e)}")
-
-    def get_endless_ai_enabled(self) -> bool:
-        settings = self.load_stream_settings()
-        return settings.get("endless_ai_enabled", False)
 
     def load_stream_settings(self, video_id: str = None):
         """

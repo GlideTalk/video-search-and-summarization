@@ -301,6 +301,7 @@ class DecoderProcess(ViaProcessBase):
         num_frames_per_chunk,
         vlm_input_width,
         vlm_input_height,
+        endless_ai_enabled=False,
         **kwargs,
     ):
         from .video_file_frame_getter import DefaultFrameSelector
@@ -317,8 +318,6 @@ class DecoderProcess(ViaProcessBase):
 
         if vlm_input_width or vlm_input_height:
             fgetter._set_frame_resolution(vlm_input_width, vlm_input_height)
-        cache = StreamSettingsCache(logger=logger)
-        fgetter.set_endless_ai_enabled(cache.get_endless_ai_enabled())
         frames, frame_times, audio_frames = fgetter.get_frames(
             chunk, True, frame_selector, enable_audio, request_id=kwargs["request_id"]
         )
@@ -370,6 +369,7 @@ class DecoderProcess(ViaProcessBase):
         enable_audio: bool,
         enable_cv_pipeline: bool,
         cv_pipeline_text_prompt: str,
+        endless_ai_enabled=False,
         **kwargs,
     ):
         from .video_file_frame_getter import DefaultFrameSelector, VideoFileFrameGetter
@@ -396,11 +396,9 @@ class DecoderProcess(ViaProcessBase):
             enable_jpeg_output=self._enable_jpeg_tensors,
             data_type_int8=self._data_type_int8,
             audio_support=self._enable_audio,
-            endless_ai_enabled=False,
+            endless_ai_enabled=endless_ai_enabled,
             cv_pipeline_configs=self._cv_pipeline_configs,
         )
-        cache = StreamSettingsCache(logger=logger)
-        fgetter.set_endless_ai_enabled(cache.get_endless_ai_enabled())
         if vlm_input_width or vlm_input_height:
             fgetter._set_frame_resolution(vlm_input_width, vlm_input_height)
 
@@ -1574,6 +1572,7 @@ class VlmPipeline:
                 vlm_input_height=vlm_input_height,
                 enable_audio=enable_audio,
                 request_id=request_id,
+                endless_ai_enabled=endless_ai_enabled,
             )
 
     def add_live_stream(
@@ -1591,6 +1590,7 @@ class VlmPipeline:
         enable_audio=False,
         enable_cv_pipeline=False,
         cv_pipeline_text_prompt="",
+        endless_ai_enabled=False,
     ):
         gpu_dec_use_cnt = {i: 0 for i in range(self._args.num_gpus)}
         for info in self._live_stream_id_map.values():
@@ -1614,6 +1614,7 @@ class VlmPipeline:
             enable_audio=enable_audio,
             enable_cv_pipeline=enable_cv_pipeline,
             cv_pipeline_text_prompt=cv_pipeline_text_prompt,
+            endless_ai_enabled=endless_ai_enabled,
         )
 
     def remove_live_stream(self, live_stream_id: str):

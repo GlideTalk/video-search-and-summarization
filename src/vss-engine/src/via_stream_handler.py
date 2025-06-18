@@ -47,7 +47,7 @@ from vss_ctx_rag.context_manager import ContextManager
 from asset_manager import Asset
 from chunk_info import ChunkInfo
 from cv_pipeline import CVPipeline
-from utils import MediaFileInfo, StreamSettingsCache, process_highlight_request
+from utils import MediaFileInfo, process_highlight_request
 from via_exception import ViaException
 from via_health_eval import GPUMonitor, RequestHealthMetrics
 from via_logger import TimeMeasure, logger
@@ -1116,6 +1116,7 @@ class ViaStreamHandler:
                 req_info.vlm_input_height,
                 req_info.enable_audio,
                 req_info.request_id,
+                endless_ai_enabled=req_info.endless_ai_enabled,
             )
             req_info.chunk_count += 1
 
@@ -1385,6 +1386,7 @@ class ViaStreamHandler:
         notification_temperature=None,
         notification_max_tokens=None,
         cv_pipeline_prompt="",
+        endless_ai_enabled=False,
     ):
         """Run a summarization query on a file"""
         # Enable summarization if summarization config is enabled  OR API passes enable flag
@@ -1433,6 +1435,7 @@ class ViaStreamHandler:
             notification_temperature=notification_temperature,
             notification_max_tokens=notification_max_tokens,
             cv_pipeline_prompt=cv_pipeline_prompt,
+            endless_ai_enabled=endless_ai_enabled,
         )
 
     def query(
@@ -1470,6 +1473,7 @@ class ViaStreamHandler:
         notification_temperature=None,
         notification_max_tokens=None,
         cv_pipeline_prompt="",
+        endless_ai_enabled=False,
     ):
         """Run a query on a file"""
 
@@ -1547,8 +1551,7 @@ class ViaStreamHandler:
         req_info.vlm_request_params.vlm_generation_config = generation_config
         req_info.assets = assets
         req_info.stream_id = req_info.assets[0].asset_id
-        cache = StreamSettingsCache(logger=logger)
-        req_info.endless_ai_enabled = cache.get_endless_ai_enabled()
+        req_info.endless_ai_enabled = endless_ai_enabled
         req_info.start_timestamp = start_timestamp
         req_info.end_timestamp = end_timestamp
         req_info.file_duration = file_duration
@@ -1940,8 +1943,7 @@ class ViaStreamHandler:
         req_info = RequestInfo()
         req_info.file = asset.path
         req_info.stream_id = asset.asset_id
-        cache = StreamSettingsCache(logger=logger)
-        req_info.endless_ai_enabled = cache.get_endless_ai_enabled()
+        req_info.endless_ai_enabled = endless_ai_enabled
         req_info.chunk_size = chunk_duration
         req_info.is_summarization = True
         req_info.vlm_request_params.vlm_prompt = query
@@ -2093,6 +2095,7 @@ class ViaStreamHandler:
             enable_audio=req_info.enable_audio,
             enable_cv_pipeline=(self._cv_pipeline and req_info.enable_cv_pipeline),
             cv_pipeline_text_prompt=cv_pipeline_prompt,
+            endless_ai_enabled=req_info.endless_ai_enabled,
         )
 
         return req_info.request_id

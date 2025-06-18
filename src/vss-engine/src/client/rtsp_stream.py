@@ -27,13 +27,12 @@ from .ui_utils import (
     get_overlay_live_stream_preview_chunks,
 )
 
-from utils import StreamSettingsCache
+
 
 pipeline_args = None
 enable_logs = True
 logger: Logger = None
 appConfig = {}
-stream_settings_cache: StreamSettingsCache | None = None
 
 
 STANDALONE_MODE = False
@@ -512,9 +511,6 @@ async def add_rtsp_stream(
                     raise gr.Error(resp_json["message"].replace("\\'", "'"))
                 video_id = resp_json["id"]
 
-            if stream_settings_cache:
-                stream_settings_cache.set_endless_ai_enabled(endless_ai_enabled)
-
             req_json = {
                 "id": video_id,
                 "model": model,
@@ -547,6 +543,7 @@ async def add_rtsp_stream(
                 "enable_cv_metadata": enable_cv_metadata,
                 "enable_audio": enable_audio,
                 "enable_chat_history": enable_chat_history,
+                "endless_ai_enabled": endless_ai_enabled,
             }
             if summary_prompt:
                 req_json["prompt"] = summary_prompt
@@ -749,9 +746,6 @@ async def reconnect_live_stream(
             raise gr.Error(resp_json["message"])
         model = resp_json["data"][0]["id"]
 
-    if stream_settings_cache:
-        stream_settings_cache.set_endless_ai_enabled(endless_ai_enabled)
-
     req_json = {
         "id": video_id,
         "model": model,
@@ -784,6 +778,7 @@ async def reconnect_live_stream(
         "enable_cv_metadata": enable_cv_metadata,
         "enable_audio": enable_audio,
         "enable_chat_history": enable_chat_history,
+        "endless_ai_enabled": endless_ai_enabled,
     }
     if summary_prompt:
         req_json["prompt"] = summary_prompt
@@ -896,12 +891,10 @@ def disable_clear():
 
 
 def build_rtsp_stream(args, app_cfg, logger_):
-    global appConfig, logger, pipeline_args, stream_settings_cache
+    global appConfig, logger, pipeline_args
     appConfig = app_cfg
     logger = logger_
     pipeline_args = args
-
-    stream_settings_cache = StreamSettingsCache(logger=logger)
 
     (
         default_prompt,

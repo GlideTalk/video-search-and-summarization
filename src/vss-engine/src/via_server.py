@@ -665,6 +665,11 @@ class SummarizationQuery(ViaBaseModel):
         pattern=CV_PROMPT_PATTERN,
     )
 
+    endless_ai_enabled: bool = Field(
+        default=False,
+        description="Enable Endless AI mode",
+    )
+
     num_frames_per_chunk: int = Field(
         default=0,
         examples=[10],
@@ -2054,6 +2059,7 @@ class ViaServer:
                             query.notification_temperature,
                             query.notification_max_tokens,
                             query.cv_pipeline_prompt,
+                            query.endless_ai_enabled,
                         )
                     except Exception as ex:
                         self._stream_handler._live_stream_info_map.pop(asset.asset_id, None)
@@ -2108,6 +2114,7 @@ class ViaServer:
                     query.notification_temperature,
                     query.notification_max_tokens,
                     query.cv_pipeline_prompt,
+                    query.endless_ai_enabled,
                 )
                 logger.info("Created video file query %s for videoId %s", request_id, videoId)
 
