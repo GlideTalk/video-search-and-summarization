@@ -1549,7 +1549,6 @@ class ViaStreamHandler:
         req_info.stream_id = req_info.assets[0].asset_id
         cache = StreamSettingsCache(logger=logger)
         req_info.endless_ai_enabled = cache.get_endless_ai_enabled()
-        logger.info(f"ELAD! req_info.endless_ai_enabled: {req_info.endless_ai_enabled}")
         req_info.start_timestamp = start_timestamp
         req_info.end_timestamp = end_timestamp
         req_info.file_duration = file_duration
