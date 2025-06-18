@@ -168,6 +168,11 @@ class RetrieveCache:
             stream_settings = self.stream_settings_cache.load_stream_settings(video_id=video_id)
             self.logger.info(f"Stream settings: {stream_settings}")
 
+        endless_setting = self.stream_settings_cache.get_endless_ai_enabled()
+        if stream_settings is None:
+            stream_settings = {}
+        stream_settings["endless_ai_enabled"] = endless_setting
+
         id_settings = stream_settings if stream_settings else {}
 
         if not id_settings:
@@ -253,6 +258,9 @@ class RetrieveCache:
             gr.update(
                 value=id_settings.get("cv_pipeline_prompt", ""), interactive=True
             ),  # cv_pipeline_prompt
+            gr.update(
+                value=id_settings.get("endless_ai_enabled", False), interactive=True
+            ),  # endless_ai_enabled
             gr.update(
                 value=id_settings.get("enable_audio", False), interactive=True
             ),  # enable_audio

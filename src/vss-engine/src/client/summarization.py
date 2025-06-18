@@ -25,12 +25,13 @@ import pkg_resources
 import yaml
 from gradio_videotimeline import VideoTimeline
 
-from utils import MediaFileInfo
+from utils import MediaFileInfo, StreamSettingsCache
 
 STANDALONE_MODE = True
 pipeline_args = None
 logger: Logger = None
 appConfig = {}
+stream_settings_cache: StreamSettingsCache | None = None
 
 DEFAULT_CHUNK_SIZE = 0
 DEFAULT_VIA_TARGET_RESPONSE_TIME = 2 * 60  # in seconds
@@ -458,6 +459,7 @@ async def summarize(
     vlm_input_width=0,
     vlm_input_height=0,
     cv_pipeline_prompt="",
+    endless_ai_enabled=False,
     enable_audio=False,
     enable_chat_history=True,
     graph_rag_prompt_yaml=None,
@@ -532,6 +534,9 @@ async def summarize(
         if cv_pipeline_prompt:
             req_json["cv_pipeline_prompt"] = cv_pipeline_prompt
         req_json["enable_audio"] = enable_audio
+
+        if stream_settings_cache:
+            stream_settings_cache.set_endless_ai_enabled(endless_ai_enabled)
 
         parsed_alerts = []
         accumulated_responses = []
@@ -788,6 +793,13 @@ async def chat_checkbox_selected(chat_checkbox):
     )
 
 
+def endless_ai_checkbox_changed(endless_ai_enabled):
+    if endless_ai_enabled is not None:
+        stream_settings_cache.set_endless_ai_enabled(endless_ai_enabled)
+    return
+
+
+
 async def video_changed(video, image_mode):
     if video:
         if image_mode:
@@ -860,10 +872,11 @@ def get_display_image(f, image_mode):
 
 
 def build_summarization(args, app_cfg, logger_):
-    global appConfig, logger, pipeline_args
+    global appConfig, logger, pipeline_args, stream_settings_cache
     appConfig = app_cfg
     logger = logger_
     pipeline_args = args
+    stream_settings_cache = StreamSettingsCache(logger=logger)
 
     (
         default_prompt,
@@ -990,6 +1003,12 @@ def build_summarization(args, app_cfg, logger_):
                             and bool(
                                 os.environ.get("DISABLE_CV_PIPELINE", "true").lower() == "false"
                             ),
+                        )
+
+                        endless_ai_checkbox = gr.Checkbox(
+                            value=False,
+                            label="Endless AI Enabled",
+                            visible=not args.image_mode,
                         )
 
                 with gr.Tab("Samples"):
@@ -1774,6 +1793,7 @@ def build_summarization(args, app_cfg, logger_):
             vlm_input_width,
             vlm_input_height,
             cv_pipeline_prompt,
+            endless_ai_checkbox,
             enable_audio,
             chat_history_checkbox,
         ],
@@ -1887,6 +1907,12 @@ def build_summarization(args, app_cfg, logger_):
             generate_highlight,
             generate_scenario_highlight,
         ],
+    )
+
+    endless_ai_checkbox.change(
+        endless_ai_checkbox_changed,
+        inputs=[endless_ai_checkbox],
+        outputs=[],
     )
 
     video.change(
