@@ -891,7 +891,7 @@ class VideoFileFrameGetter:
 
             self._last_frame_pts = buffer.pts
 
-            # logger.info("buffer_probe self._is_live=%d, buffer.pts=%d", self._is_live, buffer.pts)
+            logger.info("buffer_probe self._is_live=%d, buffer.pts=%d", self._is_live, buffer.pts)
 
             if self._is_live:
                 buffer_address = hash(buffer)
@@ -966,6 +966,21 @@ class VideoFileFrameGetter:
             else:
                 if self._frame_selector.choose_frame(buffer, buffer.pts):
                     logger.info("buffer_probe STORED FRAME SELECTED buffer.pts=%d", buffer.pts)
+
+                    # _, mapinfo = buffer.map(Gst.MapFlags.READ)
+                    # _, shape, strides, dataptr, size = pyds.get_nvds_buf_surface_gpu(hash(buffer), 0)
+                    # ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+                    # ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+                    # owner = None
+                    # c_data_ptr = ctypes.pythonapi.PyCapsule_GetPointer(dataptr, None)
+                    # unownedmem = cp.cuda.UnownedMemory(c_data_ptr, size, owner)
+                    # memptr = cp.cuda.MemoryPointer(unownedmem, 0)
+                    # n_frame_gpu = cp.ndarray(
+                    #     shape=shape, dtype=np.uint8, memptr=memptr, strides=strides, order="C"
+                    # )
+                    # logger.info(f"add_to_cache n_frame_gpu=${n_frame_gpu}")
+                    # buffer.unmap(mapinfo)
+
                     return Gst.PadProbeReturn.OK
                 if len(self._frame_selector._selected_pts_array) == 0 and not self._eos_sent:
                     if self._audio_present:
@@ -983,7 +998,7 @@ class VideoFileFrameGetter:
             return Gst.PadProbeReturn.DROP
 
         def add_to_cache(buffer, width, height):
-            logger.info("add_to_cache self._enable_jpeg_output=%d, width=%d, height=%d", self._enable_jpeg_output, width, height)
+            #logger.info("add_to_cache self._enable_jpeg_output=%d, width=%d, height=%d", self._enable_jpeg_output, width, height)
 
             # Probe callback to add raw frame / jpeg image to cache
             _, mapinfo = buffer.map(Gst.MapFlags.READ)
@@ -1005,6 +1020,8 @@ class VideoFileFrameGetter:
                 n_frame_gpu = cp.ndarray(
                     shape=shape, dtype=np.uint8, memptr=memptr, strides=strides, order="C"
                 )
+                logger.info(f"add_to_cache n_frame_gpu=${n_frame_gpu}")
+
                 image_tensor = torch.tensor(
                     n_frame_gpu, dtype=torch.uint8, requires_grad=False, device="cuda"
                 )

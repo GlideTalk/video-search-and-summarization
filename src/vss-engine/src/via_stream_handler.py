@@ -779,6 +779,9 @@ class ViaStreamHandler:
                 # for duration chunk.start_pts to chunk.end_pts
                 cv_meta = chunk.cached_frames_cv_meta
                 cv_meta_str = json.dumps(self._remove_segmasks_from_cv_meta(cv_meta))
+
+                logger.info(f"_on_vlm_chunk_response() cv_meta_str = {cv_meta_str}")
+
                 if len(cv_meta_str) > MAX_MILVUS_STRING_LEN:
                     cv_meta_str = cv_meta_str[:MAX_MILVUS_STRING_LEN]
                     logger.warning(
@@ -789,21 +792,32 @@ class ViaStreamHandler:
                     f"chunkIdx = {chunk.chunkIdx}  chunk.start_pts = {chunk.start_pts} \
                       chunk.end_pts = {chunk.end_pts} CV metadata length = {len(cv_meta)}"
                 )
+                logger.info(f"chunkIdx = {chunk.chunkIdx}  chunk.start_pts = {chunk.start_pts} chunk.end_pts = {chunk.end_pts} CV metadata length = {len(cv_meta)}")
+                logger.info("chunk.start_pts at %.2f , chunk.end_pts at %.2f", chunk.start_pts / 1e9, chunk.end_pts / 1e9)
+
+
                 # Since cv metadata is getting  attached seperately to the context manager,
                 # set cached_frames_cv_meta to empty string in chunk
                 chunk.cached_frames_cv_meta = ""
+
+                doc_metadata = (
+                    vars(chunk)
+                    | {
+                        "uuid": req_info.stream_id,
+                        "cv_meta": cv_meta_str,
+                    }
+                )
+                # TODO: Add actual grid (local file paths)
+                if (chunk.chunkIdx == 0):
+                    # f"GRID_{chunk.chunkIdx} ({chunk.start_pts / 1e9:.2f}..{chunk.end_pts / 1e9:.2f})"
+                    doc_metadata["eraneran"] = "|".join(["/tmp/grid_output_5.0-fps_1.jpg", "/tmp/grid_output_5.0-fps_2.jpg"])
+
                 with TimeMeasure("Context Manager - Add Doc"):
                     add_doc_start_time = time.time()
                     req_info._ctx_mgr.add_doc(
                         vlm_response,
                         doc_i=chunk.chunkIdx * 2 if req_info.enable_audio else chunk.chunkIdx,
-                        doc_meta=(
-                            vars(chunk)
-                            | {
-                                "uuid": req_info.stream_id,
-                                "cv_meta": cv_meta_str,
-                            }
-                        ),
+                        doc_meta=doc_metadata,
                         callback=lambda output: logger.debug(
                             f"Summary till now: {output.result()}"
                         ),
@@ -1103,6 +1117,14 @@ class ViaStreamHandler:
                 return
             chunk.streamId = req_info.assets[0].asset_id
             chunk.cv_metadata_json_file = req_info.cv_metadata_json_file
+
+            logger.info("_on_new_chunk chunk_count=%d, num_frames_per_chunk=%d", req_info.chunk_count, req_info.num_frames_per_chunk)
+            logger.info("req_info.start_timestamp=%.2f", req_info.start_timestamp)
+            logger.info("req_info.end_timestamp=%.2f", req_info.end_timestamp)
+            logger.info("req_info.file_duration=%.2f", req_info.file_duration)
+            #logger.info(f"req_info={str(vars(req_info))}")
+
+
             self._vlm_pipeline.enqueue_chunk(
                 chunk,
                 lambda response, req_info=req_info: self._on_vlm_chunk_response(response, req_info),

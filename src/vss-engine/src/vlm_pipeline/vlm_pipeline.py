@@ -266,6 +266,8 @@ class DecoderProcess(ViaProcessBase):
             )
             for _ in range(self._num_decoders_per_gpu)
         ]
+        #logger.info(f"VideoFileFrameGetter Init width={self._width}X{self._height}, self._do_preprocess={self._do_preprocess}, self._rescale_factor={self._rescale_factor}, Crop width={self._crop_width}X{self._crop_height}, self._image_aspect_ratio={self._image_aspect_ratio}, self._image_mean={self._image_mean}, self._image_std={self._image_std}")
+
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=int(self._max_live_streams + 1)
         )
@@ -748,14 +750,19 @@ class VlmProcess(ViaProcessBase):
             # Model supports explicit embeddings, fetch the embedding for each chunk
             # in the input batch
             for chunk_ in chunk:
+                #logger.info(f"ERANERAN chunk_={chunk_}")
                 embed, ftime = self._emb_helper.get_embedding(chunk_)
                 embeds.append(embed)
                 frame_times.append(ftime)
 
         frames = kwargs.pop("frames", None)
+        #logger.info(f"ERANERAN frames={frames}")
         frame_times = kwargs.pop("frame_times", frame_times)
         # Set the video embeddings on the context class along with time information
         ctx.set_video_embeds(chunk, embeds, frames, frame_times)
+
+        logger.info(f"ERANERAN request_params[0].vlm_prompt={request_params[0].vlm_prompt}, frame_times={frame_times}, chunk={chunk}")
+        #logger.info(f"ERANERAN embeds={embeds}")
 
         vlm_response_stats = ctx.ask(
             request_params[0].vlm_prompt,
@@ -776,6 +783,7 @@ class VlmProcess(ViaProcessBase):
             nvtx_vlm_process_start,
         ):
             vlm_response, stats = vlm_response_stats
+            logger.info(f"process_vlm_response() vlm_response={vlm_response}")
             nvtx.end_range(nvtx_vlm_process_start)
             for idx, chunk_ in enumerate(chunk):
                 logger.log(
@@ -1429,6 +1437,9 @@ class VlmPipeline:
                 response.vlm_end_time = item.get("vlm_end_time")
                 response.vlm_stats = item.get("vlm_stats", {"input_tokens": 0, "output_tokens": 0})
                 response.frame_times = item.get("frame_times", [])
+
+                logger.info(f"_watch_processed_chunk_queue VlmChunkResponse={str(vars(response))}")
+
 
             if item.get("is_live_stream", False):
                 if response.vlm_end_time and response.vlm_end_time - (

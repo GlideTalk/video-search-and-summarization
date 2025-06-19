@@ -41,6 +41,7 @@ class ChunkInfo(BaseModel):
     cv_metadata_json_file: str = Field(default="")
     osd_output_video_file: str = Field(default="")
     cached_frames_cv_meta: list = Field(default=[])
+    eraneran: str = Field(default="")
 
     def __repr__(self) -> str:
         if self.file.startswith("rtsp://"):
