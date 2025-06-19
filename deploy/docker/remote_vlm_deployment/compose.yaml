@@ -62,6 +62,10 @@ services:
       TRT_LLM_MODE: "${TRT_LLM_MODE:-}"
       VIA_VLM_OPENAI_MODEL_DEPLOYMENT_NAME: "${VIA_VLM_OPENAI_MODEL_DEPLOYMENT_NAME:-}"
       VIA_VLM_API_KEY: "${VIA_VLM_API_KEY:-}"
+      # AWS Bedrock configuration for Claude access
+      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID?AWS_ACCESS_KEY_ID is required for Bedrock access}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY?AWS_SECRET_ACCESS_KEY is required for Bedrock access}"
       VLM_BATCH_SIZE: "${VLM_BATCH_SIZE:-}"
       VLM_MODEL_TO_USE: "${VLM_MODEL_TO_USE:-openai-compat}"
       GRAPH_DB_URI: "${GRAPH_DB_URI:-bolt://graph-db:7687}"
